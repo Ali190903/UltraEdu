@@ -1,0 +1,58 @@
+# Archive - old scripts, logs, test outputs
+_archive/
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+
+# Environment & secrets
+.env
+.env.prod
+.env.local
+*.env
+
+# Pipeline cache (regeneratable)
+.pipeline_cache/
+
+# IDE & tools
+.vscode/
+.idea/
+.playwright-mcp/
+.zenflow-attachments/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Build outputs
+.next/
+dist/
+*.egg-info/
+
+# Docker volumes (local data)
+qdrant_storage/
+qdrant_snapshots/
+postgres_data/
+
+# Large binary files
+*.pdf
+*.png
+*.jpg
+*.jpeg
+
+# Logs
+*.log
+*_out.txt
+
+# Original textbook PDFs (too large for git)
+Dərslik/sinif9/
+Dərslik/sinif10/
+Dərslik/sinif11/
+Dərslik/Toplular/
+Dərslik/geminiapi/
+Dərslik/ultra/
+Dərslik/generate-page.png
+Dərslik/landing-full.png
+Dərslik/login.png
+Dərslik/register.png

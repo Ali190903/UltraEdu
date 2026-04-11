@@ -1,0 +1,54 @@
+# API keys & secrets
+geminiapi
+.env
+.env.local
+.env.*.local
+
+# Textbook & DIM PDFs (large binary files)
+sinif9/
+sinif10/
+sinif11/
+Toplular/
+
+# Company assets
+ultra/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+.next/
+out/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Screenshots
+*.png
+
+# Playwright
+.playwright-mcp/
+
+# Pipeline cache
+.pipeline_cache/
+
+# Docker volumes
+qdrant_storage/
+qdrant_snapshots/
+postgres_data/
