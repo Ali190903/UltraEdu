@@ -8,6 +8,7 @@ interface Props {
     question_text: string
     options: Record<string, string> | null
     matching_pairs: Record<string, string> | null
+    rubric?: Record<string, string> | null
     correct_answer: string
     explanation: string
     latex_content: string | null
@@ -152,31 +153,71 @@ export default function QuestionCard({ question, questionId, index }: Props) {
 
       {/* Open-ended: show/hide answer */}
       {!question.options && !question.matching_pairs && (
-        <button
-          onClick={() => setShowAnswer(!showAnswer)}
-          className="btn-primary text-sm"
-        >
-          {showAnswer ? 'Gizlət' : 'Cavabı göstər'}
-        </button>
+        <div className="pt-2">
+          {question.rubric && (
+            <p className="text-xs text-accent-500 mb-3 flex items-center gap-1.5">
+              <svg className="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Bu tapşırıq yazılı həll tələb edir. Sərbəst həll etdikdən sonra qiymətləndirmə meyarı (rubrik) ilə yoxlayın.
+            </p>
+          )}
+          <button
+            onClick={() => setShowAnswer(!showAnswer)}
+            className="btn-primary text-sm"
+          >
+            {showAnswer ? 'Cavabı gizlət' : 'Cavabı göstər'}
+          </button>
+        </div>
       )}
 
       {/* Answer reveal */}
       {showAnswer && (
-        <div className={`rounded-lg p-4 space-y-2 ${isCorrect ? 'bg-emerald-50 border border-emerald-200' : 'bg-accent-50 border border-accent-200'}`}>
+        <div className={`rounded-lg p-5 space-y-4 ${isCorrect ? 'bg-emerald-50 border border-emerald-200' : 'bg-accent-50 border border-accent-200'}`}>
           {selected && question.options && (
             <div className={`text-sm font-semibold ${isCorrect ? 'text-emerald-600' : 'text-rose-600'}`}>
               {isCorrect ? 'Dogru cavab!' : `Səhv. Dogru cavab: ${question.correct_answer}`}
             </div>
           )}
+          
           {!question.options && (
-            <p className="text-sm font-semibold text-primary-700">Cavab: {question.correct_answer}</p>
+            <div className="bg-white p-3 rounded border border-primary-200 inline-block min-w-[120px]">
+              <span className="text-xs font-semibold text-primary-500 uppercase tracking-wide block mb-1">Düzgün Cavab</span>
+              <span className="text-primary-800 font-bold text-lg">{renderText(question.correct_answer)}</span>
+            </div>
           )}
-          <p className="text-accent-600 text-sm leading-relaxed">{renderText(question.explanation)}</p>
-          <p className="text-accent-400 text-xs flex items-center gap-1">
+
+          {question.rubric && (
+            <div className="border border-accent-200 rounded-lg overflow-hidden bg-white mt-4 shadow-sm">
+              <table className="w-full text-[0.9375rem] text-left">
+                <thead className="bg-accent-100 text-accent-700">
+                  <tr>
+                    <th className="px-4 py-2.5 font-semibold border-b border-accent-200 w-24">Bal</th>
+                    <th className="px-4 py-2.5 font-semibold border-b border-accent-200">Meyar (Rubrik)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-accent-100">
+                  {Object.entries(question.rubric).map(([score, criteria]) => (
+                    <tr key={score} className="hover:bg-accent-50/50 transition-colors">
+                      <td className="px-4 py-3 font-bold text-primary-600 align-top whitespace-nowrap bg-primary-50/30">{score}</td>
+                      <td className="px-4 py-3 text-accent-800 align-top leading-relaxed">{renderText(criteria as string)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div className="pt-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-accent-500 mb-1">İzahı / Həlli</h4>
+            <p className="text-accent-700 text-[0.9375rem] leading-relaxed p-3 bg-white rounded border border-accent-100">{renderText(question.explanation)}</p>
+          </div>
+          
+          <p className="text-accent-400 text-xs flex items-center gap-1.5 pt-1 border-t border-accent-200/60 mt-2">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
-            {question.source_reference}
+            Mənbə: {question.source_reference}
           </p>
         </div>
       )}

@@ -14,7 +14,7 @@ from data_pipeline.dim_blocks import DIM_MATH_BLOCKS
 
 logger = logging.getLogger("testgen.variants")
 
-REFILL_ROUNDS = 1  # how many extra generation rounds to fill failed slots
+REFILL_ROUNDS = 3  # how many extra generation rounds to fill failed slots
 
 
 def _dim_math_block_dist(raw_counts: dict[str, int], total_questions: int) -> dict[str, int]:
@@ -161,57 +161,80 @@ async def create_variant(
     topics_expanded = topics_expanded[:target_total]
     difficulties_expanded = difficulties_expanded[:target_total]
 
+    types_expanded: list[str] = []
+    if subject == "riyaziyyat" and target_total == 25:
+        types_expanded.extend(["mcq"] * 13)
+        types_expanded.extend(["numeric_open"] * 5)
+        types_expanded.extend(["written_solution"] * 7)
+    else:
+        types_expanded.extend(["mcq"] * target_total)
+
     random.shuffle(topics_expanded)
     random.shuffle(difficulties_expanded)
-    tasks: list[tuple[str, str]] = list(zip(topics_expanded, difficulties_expanded))
+    random.shuffle(types_expanded)
+    
+    tasks: list[tuple[str, str, str]] = list(zip(topics_expanded, difficulties_expanded, types_expanded))
 
     # Generate questions (5 concurrent)
     semaphore = asyncio.Semaphore(5)
 
-    async def gen_one(topic: str, difficulty: str):
+    async def gen_one(topic: str, difficulty: str, q_type: str):
         async with semaphore:
             return await pipeline.run(
                 subject=subject,
                 grade=grade,
                 topic=topic,
                 difficulty=difficulty,
+                question_type=q_type,
             )
 
-    async def run_batch(batch_tasks: list[tuple[str, str]]):
+    async def run_batch(batch_tasks: list[tuple[str, str, str]]):
         return await asyncio.gather(
-            *[gen_one(t, d) for t, d in batch_tasks],
+            *[gen_one(t, d, qt) for t, d, qt in batch_tasks],
             return_exceptions=True,
         )
 
     # Round 1: full batch
     results = await run_batch(tasks)
-    successful: list[tuple[tuple[str, str], dict]] = [
-        (tasks[i], r)
-        for i, r in enumerate(results)
-        if not isinstance(r, Exception) and r["validation"]["passed"]
-    ]
+    successful: list[tuple[tuple[str, str, str], dict]] = []
+    failed_tasks: list[tuple[str, str, str]] = []
+    
+    for i, r in enumerate(results):
+        if not isinstance(r, Exception) and r["validation"]["passed"]:
+            successful.append((tasks[i], r))
+        else:
+            failed_tasks.append(tasks[i])
 
     # Refill rounds for failed slots — keep firing until we hit target or exhaust rounds
     refill_round = 0
+    topic_pool = list(topic_dist.keys()) or [subject]
+    
     while len(successful) < target_total and refill_round < REFILL_ROUNDS:
         refill_round += 1
-        needed = target_total - len(successful)
-        topic_pool = list(topic_dist.keys()) or [subject]
-        refill_tasks: list[tuple[str, str]] = []
-        for _ in range(needed):
+        refill_tasks: list[tuple[str, str, str]] = []
+        for _, _, q_type in failed_tasks:
+            # Re-roll topic and difficulty from whole pool to increase success chance
             refill_tasks.append(
-                (random.choice(topic_pool), random.choice(difficulties_expanded))
+                (random.choice(topic_pool), random.choice(difficulties_expanded), q_type)
             )
+            
         logger.info(
             "[variant] refill round %d: generating %d replacement questions",
-            refill_round, needed,
+            refill_round, len(refill_tasks),
         )
         refill_results = await run_batch(refill_tasks)
+        
+        # Reset failed tasks for the next possible round
+        next_failed_tasks = []
         for i, r in enumerate(refill_results):
             if not isinstance(r, Exception) and r["validation"]["passed"]:
                 successful.append((refill_tasks[i], r))
-            if len(successful) >= target_total:
-                break
+                if len(successful) >= target_total:
+                    break
+            else:
+                next_failed_tasks.append(refill_tasks[i])
+                
+        failed_tasks = next_failed_tasks
 
     exc_count = sum(1 for r in results if isinstance(r, Exception))
     failed_val_count = sum(
@@ -223,17 +246,18 @@ async def create_variant(
         title, target_total, len(successful), failed_val_count, exc_count, refill_round,
     )
 
-    for order, ((topic, difficulty), result) in enumerate(successful, start=1):
+    for order, ((topic, difficulty, q_type), result) in enumerate(successful, start=1):
         q = result["question"]
         question = Question(
             subject=subject,
             grade=grade,
             topic=topic,
-            question_type="mcq",
+            question_type=q_type,
             difficulty=difficulty,
             bloom_level=q["bloom_level"],
             question_text=q["question_text"],
             options=q.get("options"),
+            rubric=q.get("rubric"),
             correct_answer=q["correct_answer"],
             explanation=q["explanation"],
             latex_content=q.get("latex_content"),

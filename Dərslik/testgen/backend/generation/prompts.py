@@ -78,7 +78,21 @@ def build_generation_prompt(
             "numbers refer to left column order and letters to right column order. "
             "options field MUST be null for matching questions."
         ),
-        "open_ended": "Create an open-ended question with a clear expected answer.",
+        "numeric_open": (
+            "Create an open-ended mathematical question where the final answer is a pure numeric value "
+            "(integer or decimal/fraction). Important: The correct_answer MUST be just the digits (e.g. '15' or '3/4'). "
+            "Do NOT include units or variable names in the correct_answer field. "
+            "options MUST be null. matching_pairs MUST be null. rubric MUST be null."
+        ),
+        "written_solution": (
+            "Create a complex situation or multi-step problem that REQUIRES a detailed written solution "
+            "from the student to get full points. This simulates DIM open-ended written tasks. "
+            "options MUST be null. matching_pairs MUST be null. "
+            "You MUST provide a 'rubric' JSON object mapping exact points to grading criteria for: "
+            "\"1 bal\", \"2/3 bal\" (optional), \"1/2 bal\", \"1/3 bal\" (optional), and \"0 bal\". "
+            "Example: {{\"1 bal\": \"Tam doğru həll...\", \"1/2 bal\": \"Düztür... ammo səhv...\", \"0 bal\": ...}}. "
+            "The correct_answer field should still hold the final conceptual answer."
+        ),
     }
 
     return f"""TASK: Generate one ORIGINAL {question_type} question.
@@ -89,7 +103,7 @@ TOPIC: {topic}
 DIFFICULTY: {difficulty}
 BLOOM LEVEL: {bloom}
 
-FORMAT: {type_instructions[question_type]}
+FORMAT: {type_instructions.get(question_type, "Create an open-ended question.")}
 {grade_scope_rules}
 TEXTBOOK CONTEXT (use this as the knowledge base):
 {context_text}
@@ -118,7 +132,8 @@ Return JSON:
   "question_text": "...",
   "options": {{"A": "...", "B": "...", "C": "...", "D": "...", "E": "..."}} or null,
   "matching_pairs": {{...}} or null,
-  "correct_answer": "A" or answer text,
+  "rubric": {{"1 bal": "...", "1/2 bal": "...", "0 bal": "..."}} or null,
+  "correct_answer": "...",
   "explanation": "Explanation referencing the textbook content",
   "bloom_level": "{bloom}",
   "latex_content": "LaTeX if any math formulas" or null,

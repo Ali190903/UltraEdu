@@ -23,6 +23,7 @@ class Question(Base):
     question_image: Mapped[str | None] = mapped_column(Text, nullable=True)
     options: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     matching_pairs: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    rubric: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     correct_answer: Mapped[str] = mapped_column(Text, nullable=False)
     explanation: Mapped[str] = mapped_column(Text, nullable=False)
     latex_content: Mapped[str | None] = mapped_column(Text, nullable=True)

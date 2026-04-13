@@ -19,7 +19,7 @@ _CALCULUS_RE = re.compile(
 )
 
 
-def _structural_check(question: dict, subject: str, grade: int) -> tuple[bool, str]:
+def _structural_check(question: dict, subject: str, grade: int, question_type: str = "mcq") -> tuple[bool, str]:
     """Fast programmatic validation before the expensive LLM validator.
     Returns (ok, reason). Catches Gemini output defects the model can't spot.
     """
@@ -31,9 +31,9 @@ def _structural_check(question: dict, subject: str, grade: int) -> tuple[bool, s
         return False, "empty question_text"
 
     opts = question.get("options")
-    if opts is not None:
-        if not isinstance(opts, dict) or not opts:
-            return False, "options must be a non-empty dict"
+    if question_type == "mcq":
+        if opts is None or not isinstance(opts, dict) or not opts:
+            return False, "options must be a non-empty dict for MCQ"
         keys = set(opts.keys())
         if keys != _VALID_MCQ_KEYS:
             return False, f"options keys must be exactly A-E, got {sorted(keys)}"
@@ -43,6 +43,18 @@ def _structural_check(question: dict, subject: str, grade: int) -> tuple[bool, s
         ca = question.get("correct_answer")
         if not (isinstance(ca, str) and ca.strip().upper() in _VALID_MCQ_KEYS):
             return False, f"correct_answer must be one of A-E, got {ca!r}"
+    elif question_type in ("numeric_open", "written_solution"):
+        if opts is not None:
+            return False, f"options must be null for {question_type}"
+        ca = question.get("correct_answer")
+        if not (isinstance(ca, str) and ca.strip()):
+            return False, "correct_answer must be a non-empty string"
+        if question_type == "written_solution":
+            rubric = question.get("rubric")
+            if rubric is None or not isinstance(rubric, dict) or not rubric:
+                return False, "rubric must be a non-empty dict for written_solution"
+            if "1 bal" not in rubric or "0 bal" not in rubric:
+                return False, "rubric must contain '1 bal' and '0 bal' keys"
 
     if subject == "riyaziyyat" and grade == 11:
         blob = f"{qtext}\n{question.get('explanation', '')}"
@@ -120,7 +132,7 @@ class GenerationPipeline:
 
             # Stage 3A (fast): structural validation — reject malformed output
             # immediately to avoid burning an LLM validation call on garbage.
-            struct_ok, struct_reason = _structural_check(question, subject, grade)
+            struct_ok, struct_reason = _structural_check(question, subject, grade, question_type)
             if not struct_ok:
                 logger.info(
                     "[attempt %d/%d] topic=%r STRUCTURAL FAIL: %s — retrying",
