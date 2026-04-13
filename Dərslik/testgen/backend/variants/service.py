@@ -10,41 +10,104 @@ from models.variant import Variant, VariantQuestion
 from models.question import Question
 from generation.pipeline import GenerationPipeline
 from core.qdrant_client import QdrantWrapper, DIM_TESTS_COLLECTION
+from data_pipeline.dim_blocks import DIM_MATH_BLOCKS
 
 logger = logging.getLogger("testgen.variants")
 
 REFILL_ROUNDS = 1  # how many extra generation rounds to fill failed slots
 
 
-def _auto_topic_dist(qdrant: QdrantWrapper, subject: str, total_questions: int) -> dict[str, int]:
-    """Distribute questions across DIM topics for maximum variety.
+def _dim_math_block_dist(raw_counts: dict[str, int], total_questions: int) -> dict[str, int]:
+    dist: dict[str, int] = {}
+    
+    # Calculate available topics in each block and their frequencies
+    block_availability = {}
+    for block_name, block_info in DIM_MATH_BLOCKS.items():
+        avail = {t: raw_counts[t] for t in block_info["topics"] if t in raw_counts}
+        block_availability[block_name] = avail
 
-    Strategy:
-    - Pick the top min(total_questions, num_topics) topics by DIM frequency.
-    - Give each chosen topic at least 1 slot.
-    - Distribute remainder proportionally to DIM frequency within the chosen set.
-    This prevents the previous behavior where round(rare_count / total) collapsed
-    to 0 and only 5-10 topics got selected for a 25-question variant.
-    """
+    # Distribute target counts, absorbing shortfalls from empty blocks (e.g., Funksiyalar)
+    final_block_targets = {}
+    shortfall = 0
+    for block_name, block_info in DIM_MATH_BLOCKS.items():
+        if not block_availability[block_name]:
+            shortfall += block_info["target_count"]
+            final_block_targets[block_name] = 0
+        else:
+            final_block_targets[block_name] = block_info["target_count"]
+    
+    # Distribute shortfall iteratively to blocks that have available topics
+    active_blocks = [b for b, a in block_availability.items() if a]
+    while shortfall > 0 and active_blocks:
+        active_blocks.sort(key=lambda b: sum(block_availability[b].values()), reverse=True)
+        final_block_targets[active_blocks[0]] += 1
+        shortfall -= 1
+        # Round-robin
+        active_blocks = active_blocks[1:] + [active_blocks[0]]
+
+    # For each block, pick topics proportional to their frequency, hard cap at 2 per topic
+    for block_name, target in final_block_targets.items():
+        if target == 0:
+            continue
+        avail = block_availability[block_name]
+        sorted_avail = sorted(avail.items(), key=lambda x: x[1], reverse=True)
+        
+        while target > 0 and sorted_avail:
+            made_progress = False
+            for i in range(len(sorted_avail)):
+                if target == 0: break
+                t, _ = sorted_avail[i]
+                if dist.get(t, 0) < 2:
+                    dist[t] = dist.get(t, 0) + 1
+                    target -= 1
+                    made_progress = True
+            
+            if not made_progress:
+                shortfall += target
+                target = 0
+                break
+
+    # If any shortfall remains after anti-clustering cap, dump it back into top overall topics
+    if shortfall > 0:
+        sorted_all = sorted(raw_counts.items(), key=lambda x: x[1], reverse=True)
+        for t, _ in sorted_all:
+            if shortfall == 0: break
+            # Soften cap to 3 for spillovers just to properly satisfy 25 questions
+            if dist.get(t, 0) < 3:
+                dist[t] = dist.get(t, 0) + 1
+                shortfall -= 1
+
+    # Exact adjustment in case of any remaining drift
+    diff = total_questions - sum(dist.values())
+    if diff != 0 and dist:
+        largest = max(dist, key=dist.get)
+        dist[largest] += diff
+        
+    return dist
+
+
+def _auto_topic_dist(qdrant: QdrantWrapper, subject: str, total_questions: int) -> dict[str, int]:
+    """Distribute questions across DIM topics for maximum variety using official block rules."""
     raw_counts = qdrant.get_topic_distribution(DIM_TESTS_COLLECTION, subject)
     if not raw_counts:
         return {subject: total_questions}
 
+    if subject == "riyaziyyat":
+        return _dim_math_block_dist(raw_counts, total_questions)
+
+    # Fallback for other subjects
     sorted_topics = sorted(raw_counts.items(), key=lambda x: x[1], reverse=True)
     chosen = sorted_topics[: min(len(sorted_topics), total_questions)]
 
-    # Start with 1 slot per chosen topic
     dist: dict[str, int] = {t: 1 for t, _ in chosen}
     remaining = total_questions - len(chosen)
 
-    # Distribute remaining slots proportionally to DIM counts
     if remaining > 0:
         chosen_total = sum(c for _, c in chosen)
         for topic, count in chosen:
             extra = round(count / chosen_total * remaining)
             dist[topic] += extra
 
-    # Adjust to exact total (rounding drift)
     diff = total_questions - sum(dist.values())
     if diff != 0:
         largest = max(dist, key=dist.get)
