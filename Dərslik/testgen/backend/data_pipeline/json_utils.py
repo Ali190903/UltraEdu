@@ -44,7 +44,8 @@ def _recover_truncated_array(text: str) -> list:
     return json.loads(truncated)
 
 
-_LATEX_BACKSLASH_RE = re.compile(r'(?<!\\)\\(?=[a-zA-Z])')
+# Matches single backslash before letters, but IGNORES standard \uXXXX JSON unicode sequences.
+_LATEX_BACKSLASH_RE = re.compile(r'(?<!\\)\\(?!u[0-9a-fA-F]{4})(?=[a-zA-Z])')
 # Matches 2+ consecutive backslashes followed by a letter — post-parse, this is
 # an over-escaped LaTeX command (e.g. "\\frac" should be "\frac" in KaTeX).
 _OVEREXCAPED_LATEX_RE = re.compile(r'\\{2,}(?=[a-zA-Z])')

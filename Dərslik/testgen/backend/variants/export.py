@@ -179,6 +179,8 @@ async def export_pdf(variant_data: dict) -> bytes:
             await page.set_content(html, wait_until="networkidle")
             # Wait for KaTeX auto-render to finish marking the body
             await page.wait_for_selector("body[data-katex-ready='1']", timeout=15000)
+            # Ensure all webfonts (especially KaTeX math fonts) are fully loaded before rendering
+            await page.evaluate("await document.fonts.ready")
             pdf = await page.pdf(
                 format="A4",
                 print_background=True,
