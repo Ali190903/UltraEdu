@@ -1,9 +1,55 @@
+import logging
+import re
 import time
 
 from generation.retrieval import RetrievalStage
 from generation.generator import GenerationStage
 from generation.validator import ValidationStage
 from generation.prompts import BLOOM_MAP
+
+logger = logging.getLogger("testgen.pipeline")
+
+_VALID_MCQ_KEYS = {"A", "B", "C", "D", "E"}
+# Forbidden calculus keywords for grade-11 buraxılış math. Detected in question
+# text + explanation; if hit, reject the question as out-of-scope.
+_CALCULUS_RE = re.compile(
+    r"(törəmə|tÃ¶rÉmÉ|inteqral|maksimum hÉcm|minimum hÉcm|ekstremum|"
+    r"V'\(|S'\(|f'\(|\\int|\\frac\{d[A-Za-z]\}\{d[A-Za-z]\})",
+    re.IGNORECASE,
+)
+
+
+def _structural_check(question: dict, subject: str, grade: int) -> tuple[bool, str]:
+    """Fast programmatic validation before the expensive LLM validator.
+    Returns (ok, reason). Catches Gemini output defects the model can't spot.
+    """
+    if not isinstance(question, dict):
+        return False, "question is not a dict"
+
+    qtext = question.get("question_text")
+    if not isinstance(qtext, str) or not qtext.strip():
+        return False, "empty question_text"
+
+    opts = question.get("options")
+    if opts is not None:
+        if not isinstance(opts, dict) or not opts:
+            return False, "options must be a non-empty dict"
+        keys = set(opts.keys())
+        if keys != _VALID_MCQ_KEYS:
+            return False, f"options keys must be exactly A-E, got {sorted(keys)}"
+        for k, v in opts.items():
+            if not isinstance(v, str) or not v.strip():
+                return False, f"option {k} is empty"
+        ca = question.get("correct_answer")
+        if not (isinstance(ca, str) and ca.strip().upper() in _VALID_MCQ_KEYS):
+            return False, f"correct_answer must be one of A-E, got {ca!r}"
+
+    if subject == "riyaziyyat" and grade == 11:
+        blob = f"{qtext}\n{question.get('explanation', '')}"
+        if _CALCULUS_RE.search(blob):
+            return False, "uses calculus/optimization (out of buraxılış scope)"
+
+    return True, ""
 
 
 class GenerationPipeline:
@@ -44,6 +90,18 @@ class GenerationPipeline:
         )
         retrieval_time = time.time() - retrieval_start
 
+        textbook_count = len(context["textbook_context"])
+        dim_count = len(context["dim_examples"])
+        logger.info(
+            "[retrieval] subject=%s grade=%s topic=%r textbook_chunks=%d dim_examples=%d took=%.2fs",
+            subject, grade, topic, textbook_count, dim_count, retrieval_time,
+        )
+        if textbook_count == 0:
+            logger.warning(
+                "[retrieval] NO textbook chunks for subject=%s grade=%s topic=%r — RAG context is empty",
+                subject, grade, topic,
+            )
+
         bloom_level = BLOOM_MAP[difficulty]
 
         for attempt in range(1, self.max_attempts + 1):
@@ -60,14 +118,44 @@ class GenerationPipeline:
             )
             generation_time = time.time() - gen_start
 
-            # Stage 3: Validation
-            val_start = time.time()
-            validation = await self.validator.validate(
-                question=question,
-                textbook_context=context["textbook_context"],
-                bloom_level=bloom_level,
+            # Stage 3A (fast): structural validation — reject malformed output
+            # immediately to avoid burning an LLM validation call on garbage.
+            struct_ok, struct_reason = _structural_check(question, subject, grade)
+            if not struct_ok:
+                logger.info(
+                    "[attempt %d/%d] topic=%r STRUCTURAL FAIL: %s — retrying",
+                    attempt, self.max_attempts, topic, struct_reason,
+                )
+                validation = {
+                    "answer_correct": False,
+                    "textbook_aligned": False,
+                    "original": False,
+                    "bloom_accurate": False,
+                    "grammar_quality": False,
+                    "passed": False,
+                    "feedback": f"Structural defect: {struct_reason}",
+                    "similarity_score": 0.0,
+                }
+                validation_time = 0.0
+                if attempt < self.max_attempts:
+                    continue
+            else:
+                # Stage 3B: Validation (similarity + LLM review)
+                val_start = time.time()
+                validation = await self.validator.validate(
+                    question=question,
+                    textbook_context=context["textbook_context"],
+                    bloom_level=bloom_level,
+                )
+                validation_time = time.time() - val_start
+
+            logger.info(
+                "[attempt %d/%d] topic=%r passed=%s similarity=%.3f feedback=%r",
+                attempt, self.max_attempts, topic,
+                validation.get("passed"),
+                validation.get("similarity_score", 0.0),
+                validation.get("feedback", "")[:120],
             )
-            validation_time = time.time() - val_start
 
             if validation["passed"]:
                 return {
@@ -83,6 +171,10 @@ class GenerationPipeline:
                 }
 
         # All attempts failed — return last result
+        logger.warning(
+            "[pipeline] ALL %d attempts failed for topic=%r difficulty=%s — question will be dropped by caller",
+            self.max_attempts, topic, difficulty,
+        )
         return {
             "question": question,
             "validation": validation,

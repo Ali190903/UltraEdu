@@ -60,7 +60,7 @@ export default function VariantBuilder() {
       </div>
 
       {/* Subject & Grade */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-semibold text-accent-700 mb-2 block">Fənn</label>
           <select
@@ -86,7 +86,7 @@ export default function VariantBuilder() {
                 key={g}
                 type="button"
                 onClick={() => setForm({ ...form, grade: g })}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-semibold border-1.5 transition-all duration-200 cursor-pointer ${
+                className={`flex-1 py-2.5 rounded-lg text-sm font-semibold border-1.5 transition-all duration-200 cursor-pointer whitespace-nowrap ${
                   form.grade === g
                     ? 'bg-primary-50 border-primary-400 text-primary-700'
                     : 'bg-white border-accent-200 text-accent-500 hover:border-accent-300'
@@ -208,20 +208,18 @@ export default function VariantBuilder() {
               </span>
             </div>
             <div className="flex items-center gap-2 mt-2">
-              <a
-                href={api.variants.export(result.variant?.id || result.id, 'pdf')}
-                className="text-xs px-3 py-1.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
-                target="_blank"
+              <button
+                onClick={() => api.variants.export(result.variant?.id || result.id, 'pdf')}
+                className="text-xs px-3 py-1.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors cursor-pointer"
               >
                 PDF yüklə
-              </a>
-              <a
-                href={api.variants.export(result.variant?.id || result.id, 'word')}
-                className="text-xs px-3 py-1.5 rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition-colors"
-                target="_blank"
+              </button>
+              <button
+                onClick={() => api.variants.export(result.variant?.id || result.id, 'word')}
+                className="text-xs px-3 py-1.5 rounded-lg bg-violet-600 text-white hover:bg-violet-700 transition-colors cursor-pointer"
               >
                 Word yüklə
-              </a>
+              </button>
             </div>
           </div>
 

@@ -17,7 +17,7 @@ from generation.validator import ValidationStage
 from generation.pipeline import GenerationPipeline
 from variants.schemas import VariantCreateRequest, VariantResponse
 from variants.service import create_variant, list_variants, get_variant_with_questions
-from variants.export import export_json, export_pdf, export_word
+from variants.export import export_json, export_pdf, export_word, export_text
 
 router = APIRouter(prefix="/api/variants", tags=["variants"])
 
@@ -131,15 +131,22 @@ async def export(
         return Response(content=content, media_type="application/json",
                         headers={"Content-Disposition": f"attachment; filename=variant_{variant_id}.json"})
     elif format == "pdf":
-        content = export_pdf(data)
+        content = await export_pdf(data)
         return Response(content=content, media_type="application/pdf",
                         headers={"Content-Disposition": f"attachment; filename=variant_{variant_id}.pdf"})
     elif format == "word":
-        content = export_word(data)
+        content = await export_word(data)
         return Response(
             content=content,
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             headers={"Content-Disposition": f"attachment; filename=variant_{variant_id}.docx"},
         )
+    elif format == "text":
+        content = export_text(data).encode("utf-8")
+        return Response(
+            content=content,
+            media_type="text/plain; charset=utf-8",
+            headers={"Content-Disposition": f"attachment; filename=variant_{variant_id}.txt"},
+        )
     else:
-        raise HTTPException(status_code=400, detail="Unsupported format. Use: json, pdf, word")
+        raise HTTPException(status_code=400, detail="Unsupported format. Use: json, pdf, word, text")

@@ -13,7 +13,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U testgen"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -22,6 +22,11 @@ services:
       - "6334:6334"
     volumes:
       - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build: ./backend
@@ -36,19 +41,32 @@ services:
     volumes:
       - ./backend:/app
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
     ports:
       - "3000:3000"
     depends_on:
-      - backend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      backend:
+        condition: service_started
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
-    command: npm run dev
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/next.config.js:/app/next.config.js
+      - ./frontend/tsconfig.json:/app/tsconfig.json
+      - ./frontend/postcss.config.js:/app/postcss.config.js
 
 volumes:
   pgdata:

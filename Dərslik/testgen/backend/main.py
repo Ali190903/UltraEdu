@@ -1,7 +1,14 @@
+import logging
+
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s :: %(message)s",
+)
 
 from core.database import get_db
 from auth.security import get_current_user

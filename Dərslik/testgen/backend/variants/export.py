@@ -1,14 +1,6 @@
-import io
+import asyncio
+import html as _html
 import json
-
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import mm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Flowable
-from docx import Document
-from docx.shared import Pt, Mm
-
-from .latex_render import latex_to_image, split_text_and_latex
 
 
 def export_json(variant_data: dict) -> bytes:
@@ -57,148 +49,189 @@ def export_text(variant_data: dict) -> str:
     return "\n".join(lines)
 
 
-class InlineLatexImage(Flowable):
-    """A flowable that renders inline with text height."""
+_SUBJECT_LABELS = {
+    "az_dili": "Azərbaycan dili",
+    "riyaziyyat": "Riyaziyyat",
+    "ingilis": "İngilis dili",
+}
 
-    def __init__(self, img_bytes: bytes, max_height: float = 5 * mm):
-        super().__init__()
-        from reportlab.lib.utils import ImageReader
-        reader = ImageReader(io.BytesIO(img_bytes))
-        w, h = reader.getSize()
-        scale = max_height / h if h > 0 else 1
-        self.img_width = w * scale
-        self.img_height = max_height
-        self.img_bytes = img_bytes
 
-    def wrap(self, availWidth, availHeight):
-        return self.img_width, self.img_height
+def _esc(s: str) -> str:
+    """HTML-escape plain text while preserving `$...$` math delimiters.
 
-    def draw(self):
-        self.canv.drawImage(
-            io.BytesIO(self.img_bytes),
-            0, 0,
-            width=self.img_width,
-            height=self.img_height,
-            mask="auto",
+    KaTeX auto-render needs the dollar signs intact, but all other special
+    characters must be escaped to prevent HTML injection from question text.
+    """
+    return _html.escape(s or "", quote=False)
+
+
+def _build_html(variant_data: dict) -> str:
+    v = variant_data["variant"]
+    subject_label = _SUBJECT_LABELS.get(v.subject, v.subject)
+
+    question_blocks = []
+    for item in variant_data["questions"]:
+        q = item["question"]
+        order = item["order"]
+        qtext = _esc(q.question_text)
+        opts_html = ""
+        if q.options:
+            rows = "".join(
+                f'<div class="opt"><span class="opt-key">{_esc(k)})</span> '
+                f'<span class="opt-val">{_esc(val)}</span></div>'
+                for k, val in q.options.items()
+            )
+            opts_html = f'<div class="opts">{rows}</div>'
+        question_blocks.append(
+            f'<div class="q">'
+            f'<div class="q-head"><span class="q-num">{order}.</span> '
+            f'<span class="q-text">{qtext}</span></div>'
+            f'{opts_html}'
+            f'</div>'
         )
 
+    answer_items = "".join(
+        f'<li><span class="a-num">{item["order"]}.</span> '
+        f'<span class="a-val">{_esc(item["question"].correct_answer)}</span></li>'
+        for item in variant_data["questions"]
+    )
 
-def _build_pdf_text_with_latex(text: str, style, story: list):
-    """Add text with rendered LaTeX images to PDF story."""
-    parts = split_text_and_latex(text)
-    has_latex = any(p["type"] == "latex" for p in parts)
+    return f"""<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="utf-8">
+<title>{_esc(v.title)}</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * {{ box-sizing: border-box; }}
+  html, body {{ margin: 0; padding: 0; }}
+  body {{
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #1e293b;
+    font-size: 11pt;
+    line-height: 1.55;
+    padding: 0 18mm;
+  }}
+  header {{ border-bottom: 2px solid #0f172a; padding: 18px 0 10px; margin-bottom: 18px; }}
+  h1 {{ font-size: 18pt; margin: 0 0 4px; font-weight: 800; }}
+  .meta {{ color: #64748b; font-size: 10pt; }}
+  .q {{ margin-bottom: 14px; page-break-inside: avoid; }}
+  .q-head {{ font-weight: 500; }}
+  .q-num {{ font-weight: 700; color: #0f172a; margin-right: 4px; }}
+  .opts {{ margin: 6px 0 0 22px; }}
+  .opt {{ margin: 3px 0; }}
+  .opt-key {{ font-weight: 600; color: #334155; margin-right: 4px; }}
+  .answers {{ margin-top: 28px; padding-top: 14px; border-top: 1px solid #cbd5e1; page-break-before: auto; }}
+  .answers h2 {{ font-size: 13pt; margin: 0 0 10px; font-weight: 700; }}
+  .answers ol {{ list-style: none; margin: 0; padding: 0; columns: 3; column-gap: 24px; }}
+  .answers li {{ break-inside: avoid; margin: 2px 0; font-size: 10pt; }}
+  .a-num {{ color: #64748b; margin-right: 4px; }}
+  .a-val {{ font-weight: 600; }}
+  /* KaTeX sizing — match site */
+  .katex {{ font-size: 1.05em; }}
+  @page {{ size: A4; margin: 16mm 0; }}
+</style>
+</head>
+<body>
+  <header>
+    <h1>{_esc(v.title)}</h1>
+    <div class="meta">{subject_label} · {v.total_questions} sual</div>
+  </header>
+  <div class="questions">
+    {''.join(question_blocks)}
+  </div>
+  <div class="answers">
+    <h2>Cavablar</h2>
+    <ol>{answer_items}</ol>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {{
+      renderMathInElement(document.body, {{
+        delimiters: [
+          {{left: '$$', right: '$$', display: true}},
+          {{left: '$', right: '$', display: false}}
+        ],
+        throwOnError: false,
+        strict: false
+      }});
+      document.body.setAttribute('data-katex-ready', '1');
+    }});
+  </script>
+</body>
+</html>"""
 
-    if not has_latex:
-        story.append(Paragraph(text, style))
-        return
 
-    # For mixed content: add text paragraphs and latex as images
-    for part in parts:
-        if part["type"] == "text":
-            t = part["content"].strip()
-            if t:
-                story.append(Paragraph(t, style))
-        else:
-            try:
-                fontsize = 16 if part.get("display") else 14
-                img_bytes = latex_to_image(part["content"], fontsize=fontsize)
-                img = Image(io.BytesIO(img_bytes))
-                # Scale to reasonable size
-                max_w = 160 * mm if part.get("display") else 80 * mm
-                if img.drawWidth > max_w:
-                    scale = max_w / img.drawWidth
-                    img.drawWidth *= scale
-                    img.drawHeight *= scale
-                story.append(img)
-            except Exception:
-                # Fallback: raw LaTeX text
-                story.append(Paragraph(f"${part['content']}$", style))
+async def export_pdf(variant_data: dict) -> bytes:
+    from playwright.async_api import async_playwright
+
+    html = _build_html(variant_data)
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+        )
+        try:
+            page = await browser.new_page()
+            await page.set_content(html, wait_until="networkidle")
+            # Wait for KaTeX auto-render to finish marking the body
+            await page.wait_for_selector("body[data-katex-ready='1']", timeout=15000)
+            pdf = await page.pdf(
+                format="A4",
+                print_background=True,
+                prefer_css_page_size=True,
+            )
+        finally:
+            await browser.close()
+    return pdf
 
 
-def export_pdf(variant_data: dict) -> bytes:
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
-    styles = getSampleStyleSheet()
-
-    title_style = ParagraphStyle("VTitle", parent=styles["Title"], fontSize=16)
-    q_style = ParagraphStyle("QStyle", parent=styles["Normal"], fontSize=11, spaceAfter=4)
-    opt_style = ParagraphStyle("OptStyle", parent=styles["Normal"], fontSize=10, leftIndent=20)
-
-    story = []
+def _build_markdown(variant_data: dict) -> str:
     v = variant_data["variant"]
-    story.append(Paragraph(v.title, title_style))
-    story.append(Paragraph(f"Fənn: {v.subject} | Sual sayı: {v.total_questions}", styles["Normal"]))
-    story.append(Spacer(1, 12))
-
+    subject_label = _SUBJECT_LABELS.get(v.subject, v.subject)
+    lines = [
+        f"# {v.title}",
+        "",
+        f"**Fənn:** {subject_label} · **Sual sayı:** {v.total_questions}",
+        "",
+        "---",
+        "",
+    ]
     for item in variant_data["questions"]:
         q = item["question"]
-        story.append(Paragraph(f"<b>{item['order']}.</b>", q_style))
-        _build_pdf_text_with_latex(q.question_text, q_style, story)
+        lines.append(f"**{item['order']}.** {q.question_text}")
+        lines.append("")
         if q.options:
-            for key, val in q.options.items():
-                _build_pdf_text_with_latex(f"{key}) {val}", opt_style, story)
-        story.append(Spacer(1, 8))
+            for k, val in q.options.items():
+                lines.append(f"- **{k})** {val}")
+            lines.append("")
 
-    story.append(Spacer(1, 20))
-    story.append(Paragraph("<b>Cavablar</b>", styles["Heading2"]))
+    lines.append("")
+    lines.append("## Cavablar")
+    lines.append("")
     for item in variant_data["questions"]:
         q = item["question"]
-        _build_pdf_text_with_latex(f"{item['order']}. {q.correct_answer}", styles["Normal"], story)
+        lines.append(f"{item['order']}\\. {q.correct_answer}  ")
 
-    doc.build(story)
-    return buffer.getvalue()
-
-
-def _add_word_text_with_latex(doc: Document, text: str, bold_prefix: str = ""):
-    """Add a paragraph with rendered LaTeX images to Word document."""
-    parts = split_text_and_latex(text)
-    has_latex = any(p["type"] == "latex" for p in parts)
-
-    if not has_latex:
-        p = doc.add_paragraph()
-        if bold_prefix:
-            run = p.add_run(bold_prefix)
-            run.bold = True
-        p.add_run(text)
-        return
-
-    p = doc.add_paragraph()
-    if bold_prefix:
-        run = p.add_run(bold_prefix)
-        run.bold = True
-
-    for part in parts:
-        if part["type"] == "text":
-            p.add_run(part["content"])
-        else:
-            try:
-                fontsize = 16 if part.get("display") else 14
-                img_bytes = latex_to_image(part["content"], fontsize=fontsize)
-                run = p.add_run()
-                run.add_picture(io.BytesIO(img_bytes), height=Mm(5))
-            except Exception:
-                p.add_run(f"${part['content']}$")
+    return "\n".join(lines)
 
 
-def export_word(variant_data: dict) -> bytes:
-    doc = Document()
-    v = variant_data["variant"]
-
-    doc.add_heading(v.title, level=1)
-    doc.add_paragraph(f"Fənn: {v.subject} | Sual sayı: {v.total_questions}")
-
-    for item in variant_data["questions"]:
-        q = item["question"]
-        _add_word_text_with_latex(doc, q.question_text, bold_prefix=f"{item['order']}. ")
-        if q.options:
-            for key, val in q.options.items():
-                _add_word_text_with_latex(doc, val, bold_prefix=f"   {key}) ")
-
-    doc.add_heading("Cavablar", level=2)
-    for item in variant_data["questions"]:
-        q = item["question"]
-        _add_word_text_with_latex(doc, q.correct_answer, bold_prefix=f"{item['order']}. ")
-
-    buffer = io.BytesIO()
-    doc.save(buffer)
-    return buffer.getvalue()
+async def export_word(variant_data: dict) -> bytes:
+    """Pandoc converts markdown (with `$...$` LaTeX) to docx with native OMML equations."""
+    markdown = _build_markdown(variant_data)
+    proc = await asyncio.create_subprocess_exec(
+        "pandoc",
+        "-f", "markdown+tex_math_dollars",
+        "-t", "docx",
+        "-o", "-",
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await proc.communicate(input=markdown.encode("utf-8"))
+    if proc.returncode != 0:
+        raise RuntimeError(f"pandoc failed: {stderr.decode('utf-8', errors='replace')}")
+    return stdout

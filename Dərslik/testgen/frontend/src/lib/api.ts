@@ -36,10 +36,27 @@ export const api = {
     list: (params: string) => request<{ items: import('./types').Question[]; total: number }>(`/api/questions?${params}`),
   },
   variants: {
-    generate: (data: any) => request('/api/variants/generate', { method: 'POST', body: JSON.stringify(data) }),
+    generate: (data: any) => request<{ id: string }>('/api/variants/generate', { method: 'POST', body: JSON.stringify(data) }),
     list: () => request<any[]>('/api/variants'),
     get: (id: string) => request<any>(`/api/variants/${id}`),
-    export: (id: string, format: string) => `${API_URL}/api/variants/${id}/export?format=${format}`,
+    export: async (id: string, format: string) => {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+      const res = await fetch(`${API_URL}/api/variants/${id}/export?format=${format}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ detail: res.statusText }))
+        throw new Error(error.detail || 'Export failed')
+      }
+      const blob = await res.blob()
+      const ext = format === 'word' ? 'docx' : format === 'text' ? 'txt' : format
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `variant_${id}.${ext}`
+      a.click()
+      URL.revokeObjectURL(url)
+    },
   },
   reports: {
     create: (data: { question_id: string; report_type: string; comment?: string }) =>

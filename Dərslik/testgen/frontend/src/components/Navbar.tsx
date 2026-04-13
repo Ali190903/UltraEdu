@@ -2,15 +2,23 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
   const [mounted, setMounted] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  const hideOnRoutes = ['/login', '/register']
+  const shouldHide =
+    pathname?.startsWith('/teacher') ||
+    hideOnRoutes.some((r) => pathname === r || pathname?.startsWith(r + '/'))
+  if (shouldHide) return null
 
   return (
     <nav className="glass sticky top-0 z-50 border-b border-accent-100">

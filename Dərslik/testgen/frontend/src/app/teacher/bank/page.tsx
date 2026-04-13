@@ -11,10 +11,28 @@ const subjectNames: Record<string, string> = {
   ingilis: 'İngilis dili',
 }
 
-const difficultyLabels: Record<string, { label: string; cls: string }> = {
-  easy: { label: 'Asan', cls: 'bg-emerald-50 text-emerald-600' },
-  medium: { label: 'Orta', cls: 'bg-amber-50 text-amber-600' },
-  hard: { label: 'Çətin', cls: 'bg-rose-50 text-rose-600' },
+const difficultyStyles: Record<
+  string,
+  { label: string; badge: string; dot: string; accent: string }
+> = {
+  easy: {
+    label: 'Asan',
+    badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
+    dot: 'bg-emerald-500',
+    accent: 'bg-emerald-400',
+  },
+  medium: {
+    label: 'Orta',
+    badge: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+    dot: 'bg-amber-500',
+    accent: 'bg-amber-400',
+  },
+  hard: {
+    label: 'Çətin',
+    badge: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200',
+    dot: 'bg-rose-500',
+    accent: 'bg-rose-400',
+  },
 }
 
 const statusLabels: Record<string, { label: string; cls: string }> = {
@@ -52,20 +70,33 @@ export default function QuestionBankPage() {
 
   return (
     <div className="min-h-screen bg-accent-50">
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white">
-        <div className="max-w-5xl mx-auto px-6 py-8">
-          <h1 className="text-2xl font-bold">Sual Bankı</h1>
-          <p className="text-primary-100 mt-1">Yaradılmış bütün sualları idarə edin — {total} sual</p>
+      {/* Compact hero matching dashboard */}
+      <div className="bg-white border-b border-accent-100">
+        <div className="max-w-6xl mx-auto px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-accent-900">Sual Bankı</h1>
+            <p className="text-sm text-accent-500 mt-0.5">
+              Yaradılmış bütün sualları idarə edin — {total} sual
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-accent-500">
+            {(['easy', 'medium', 'hard'] as const).map((k) => (
+              <span key={k} className="inline-flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${difficultyStyles[k].dot}`} />
+                {difficultyStyles[k].label}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
+      <div className="max-w-6xl mx-auto px-6 py-6 space-y-5">
         {/* Filters */}
-        <div className="card p-4 flex flex-wrap items-center gap-3">
+        <div className="card p-3 sm:p-4 flex flex-wrap items-center gap-2.5">
           <select
             value={filters.subject}
             onChange={(e) => setFilters({ ...filters, subject: e.target.value, page: 1 })}
-            className="input-field !w-auto bg-white cursor-pointer appearance-none pr-10"
+            className="input-field !w-auto !py-2 text-sm bg-white cursor-pointer appearance-none pr-9"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
               backgroundRepeat: 'no-repeat',
@@ -81,7 +112,7 @@ export default function QuestionBankPage() {
           <select
             value={filters.difficulty}
             onChange={(e) => setFilters({ ...filters, difficulty: e.target.value, page: 1 })}
-            className="input-field !w-auto bg-white cursor-pointer appearance-none pr-10"
+            className="input-field !w-auto !py-2 text-sm bg-white cursor-pointer appearance-none pr-9"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
               backgroundRepeat: 'no-repeat',
@@ -94,9 +125,7 @@ export default function QuestionBankPage() {
             <option value="hard">Çətin</option>
           </select>
 
-          <span className="text-sm text-accent-400 ml-auto">
-            {total} nəticə
-          </span>
+          <span className="text-xs text-accent-400 ml-auto">{total} nəticə</span>
         </div>
 
         {/* Loading */}
@@ -110,22 +139,28 @@ export default function QuestionBankPage() {
           </div>
         )}
 
-        {/* Questions list */}
+        {/* Questions grid */}
         {!loading && (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
             {questions.map((q, idx) => {
               const isExpanded = expandedId === q.id
-              const diff = difficultyLabels[q.difficulty] || { label: q.difficulty, cls: 'bg-accent-100 text-accent-500' }
+              const diff =
+                difficultyStyles[q.difficulty] || {
+                  label: q.difficulty,
+                  badge: 'bg-accent-100 text-accent-500',
+                  dot: 'bg-accent-300',
+                  accent: 'bg-accent-300',
+                }
               const status = statusLabels[q.status] || { label: q.status, cls: 'bg-accent-100 text-accent-500' }
 
               if (isExpanded) {
                 return (
-                  <div key={q.id}>
+                  <div key={q.id} className="col-span-full">
                     <button
                       onClick={() => setExpandedId(null)}
-                      className="text-xs text-accent-400 hover:text-primary-600 mb-2 cursor-pointer"
+                      className="text-xs text-accent-400 hover:text-primary-600 mb-2 cursor-pointer inline-flex items-center gap-1"
                     >
-                      ← Bağla
+                      <span aria-hidden>←</span> Bağla
                     </button>
                     <QuestionCard
                       question={{
@@ -150,37 +185,57 @@ export default function QuestionBankPage() {
                 <div
                   key={q.id}
                   onClick={() => setExpandedId(q.id)}
-                  className="card p-5 cursor-pointer hover:border-primary-200 transition-colors"
+                  className="group relative card p-5 pl-6 cursor-pointer hover:border-primary-300 hover:shadow-md transition-all overflow-hidden"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-accent-800 text-sm leading-relaxed flex-1 line-clamp-2">
-                      <LatexRenderer content={q.question_text} />
-                    </p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${status.cls}`}>
+                  {/* Difficulty accent bar */}
+                  <span className={`absolute left-0 top-0 bottom-0 w-1 ${diff.accent}`} aria-hidden />
+
+                  {/* Header: difficulty badge + status */}
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <span
+                      className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full ${diff.badge}`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${diff.dot}`} />
+                      {diff.label}
+                    </span>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${status.cls}`}
+                    >
                       {status.label}
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-accent-100 text-accent-500 font-medium">
+
+                  {/* Question text */}
+                  <p className="text-accent-800 text-sm leading-relaxed line-clamp-3 min-h-[4.5rem]">
+                    <LatexRenderer content={q.question_text} />
+                  </p>
+
+                  {/* Meta row */}
+                  <div className="flex flex-wrap gap-1.5 mt-4 pt-3 border-t border-accent-100">
+                    <span className="text-[11px] px-2 py-0.5 rounded-md bg-primary-50 text-primary-700 font-medium">
                       {subjectNames[q.subject] || q.subject}
                     </span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-accent-100 text-accent-500 font-medium">
+                    <span className="text-[11px] px-2 py-0.5 rounded-md bg-accent-100 text-accent-600 font-medium">
                       {q.grade}-{q.grade === 11 ? 'ci' : 'cu'} sinif
                     </span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-accent-100 text-accent-500 font-medium">
+                    <span
+                      className="text-[11px] px-2 py-0.5 rounded-md bg-accent-100 text-accent-600 font-medium truncate max-w-[16rem]"
+                      title={q.topic}
+                    >
                       {q.topic}
                     </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${diff.cls}`}>
-                      {diff.label}
-                    </span>
                   </div>
-                  <p className="text-xs text-accent-300 mt-2">Tam görmək üçün klikləyin</p>
+
+                  <p className="text-[11px] text-accent-400 mt-3 flex items-center gap-1 group-hover:text-primary-600 transition-colors">
+                    Tam görmək üçün klikləyin
+                    <span aria-hidden className="transition-transform group-hover:translate-x-0.5">→</span>
+                  </p>
                 </div>
               )
             })}
 
             {questions.length === 0 && (
-              <div className="card p-12 text-center">
+              <div className="card p-12 text-center col-span-full">
                 <p className="text-accent-400">Sual tapılmadı</p>
               </div>
             )}

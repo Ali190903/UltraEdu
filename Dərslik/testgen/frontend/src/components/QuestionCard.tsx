@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import LatexRenderer from './LatexRenderer'
 import ReportButton from './ReportButton'
 
@@ -108,13 +108,55 @@ export default function QuestionCard({ question, questionId, index }: Props) {
         </div>
       )}
 
+      {/* Matching pairs — two-column layout */}
+      {question.matching_pairs && Object.keys(question.matching_pairs).length > 0 && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-[auto_1fr_auto_1fr] gap-x-3 gap-y-2 items-center text-[0.9375rem]">
+            <div className="col-span-2 text-xs font-semibold uppercase tracking-wide text-accent-500 px-1">
+              Sol sütun
+            </div>
+            <div className="col-span-2 text-xs font-semibold uppercase tracking-wide text-accent-500 px-1">
+              Sağ sütun
+            </div>
+            {Object.entries(question.matching_pairs).map(([left, right], i) => (
+              <Fragment key={i}>
+                <span className="w-7 h-7 rounded-full bg-primary-100 text-primary-700 text-xs font-bold flex items-center justify-center">
+                  {i + 1}
+                </span>
+                <div className="px-3 py-2 rounded-lg border border-accent-200 bg-white text-accent-800">
+                  {renderText(left)}
+                </div>
+                <span className="w-7 h-7 rounded-full bg-accent-100 text-accent-500 text-xs font-bold flex items-center justify-center">
+                  {String.fromCharCode(65 + i)}
+                </span>
+                <div
+                  className={`px-3 py-2 rounded-lg border transition-all ${
+                    showAnswer
+                      ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
+                      : 'border-accent-200 bg-white text-accent-400 blur-[3px] select-none'
+                  }`}
+                >
+                  {renderText(right)}
+                </div>
+              </Fragment>
+            ))}
+          </div>
+          <button
+            onClick={() => setShowAnswer(!showAnswer)}
+            className="btn-primary text-sm"
+          >
+            {showAnswer ? 'Cavabı gizlət' : 'Cavabı göstər'}
+          </button>
+        </div>
+      )}
+
       {/* Open-ended: show/hide answer */}
       {!question.options && !question.matching_pairs && (
         <button
           onClick={() => setShowAnswer(!showAnswer)}
           className="btn-primary text-sm"
         >
-          {showAnswer ? 'Gizlət' : 'Cavabi gostər'}
+          {showAnswer ? 'Gizlət' : 'Cavabı göstər'}
         </button>
       )}
 

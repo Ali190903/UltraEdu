@@ -1,6 +1,6 @@
 from core.gemini_client import GeminiClient
 from generation.prompts import SYSTEM_PROMPT, build_generation_prompt
-from data_pipeline.json_utils import parse_llm_json
+from data_pipeline.json_utils import parse_llm_json, sanitize_question
 
 
 class GenerationStage:
@@ -34,5 +34,9 @@ class GenerationStage:
         )
         parsed = parse_llm_json(response)
         if isinstance(parsed, list):
+            if not parsed:
+                raise ValueError("Gemini returned empty JSON array — no question generated")
             parsed = parsed[0]
-        return parsed
+        if not isinstance(parsed, dict):
+            raise ValueError(f"Gemini returned non-dict JSON: {type(parsed).__name__}")
+        return sanitize_question(parsed)

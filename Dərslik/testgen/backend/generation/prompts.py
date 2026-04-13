@@ -41,9 +41,43 @@ def build_generation_prompt(
         for e in dim_examples
     )
 
+    # Grade-11 buraxılış math scope: no calculus, no optimization.
+    grade_scope_rules = ""
+    if subject == "riyaziyyat" and grade == 11:
+        grade_scope_rules = (
+            "\nCURRICULUM SCOPE (MANDATORY — grade 11 buraxılış imtahanı):\n"
+            "- FORBIDDEN topics: derivatives (törəmə), integrals (inteqral), "
+            "function extrema/optimization (maksimum/minimum tapma), limits of functions "
+            "(f(x) limiti — only numeric sequence limits $\\lim_{n\\to\\infty}$ are allowed), "
+            "differential equations. These are NOT in the buraxılış syllabus.\n"
+            "- ALLOWED: algebra (polynomials, rational expressions, equations/inequalities), "
+            "sequences & series (numeric limits), trigonometry, geometry (triangles, circles, "
+            "solids — surface area & volume by direct formulas only), probability, "
+            "percentages/ratios, functions (domain/range/composition — NOT derivatives).\n"
+            "- If the textbook context contains calculus material, IGNORE it and pick "
+            "an allowed concept from the same topic.\n"
+        )
+
     type_instructions = {
-        "mcq": "Create a multiple-choice question with exactly 5 options (A-E). Exactly one option must be correct.",
-        "matching": "Create a matching question with two columns. Provide matching_pairs as a dict mapping left items to right items.",
+        "mcq": (
+            "Create a multiple-choice question with exactly 5 options keyed A, B, C, D, E "
+            "(exactly these five uppercase letters as JSON keys — never text as key). "
+            "Exactly one option must be correct. "
+            "Every option value that contains ANY mathematical symbol, variable, or LaTeX "
+            "command MUST be wrapped in $...$ delimiters (e.g. \"$x^2$\", \"$4\\\\pi$ m$^3$\"). "
+            "Plain numeric-only values like \"10\" or \"6500\" do NOT need delimiters."
+        ),
+        "matching": (
+            "Create a matching question (DIM 'uyğunluğu müəyyən edin' format) with TWO columns. "
+            "Left column: 3 to 5 items (concepts/formulas/definitions). "
+            "Right column: 3 to 5 items (matches for the left). "
+            "Provide matching_pairs as a JSON object where EACH KEY is a left-column item text "
+            "and EACH VALUE is its correct right-column match text (full text, not letter labels). "
+            "Example: {\"Pifaqor teoremi\": \"a² + b² = c²\", \"Kosinuslar teoremi\": \"c² = a² + b² - 2ab·cos(C)\"}. "
+            "correct_answer must be a human-readable summary of the mapping, e.g. '1-B; 2-A; 3-C' where "
+            "numbers refer to left column order and letters to right column order. "
+            "options field MUST be null for matching questions."
+        ),
         "open_ended": "Create an open-ended question with a clear expected answer.",
     }
 
@@ -56,7 +90,7 @@ DIFFICULTY: {difficulty}
 BLOOM LEVEL: {bloom}
 
 FORMAT: {type_instructions[question_type]}
-
+{grade_scope_rules}
 TEXTBOOK CONTEXT (use this as the knowledge base):
 {context_text}
 
@@ -66,7 +100,17 @@ DIM EXAMPLES (match this style, but create something NEW):
 IMPORTANT:
 - The question must be answerable from the textbook context above
 - Use Azerbaijani language
-- For math, use LaTeX notation for formulas
+- For math formulas, use proper LaTeX notation wrapped in $...$ (inline) or $$...$$ (display)
+- Use correct LaTeX commands: \\frac{{a}}{{b}} (NOT rac), \\sqrt{{x}}, \\pi, \\lim, \\sum, \\int, \\infty, \\cdot, \\times, \\leq, \\geq, \\neq
+- Example: "$S(t) = \\pi r^2$" or "$$\\frac{{4n-1}}{{n}}$$"
+
+JSON ESCAPING RULES (CRITICAL — read carefully):
+- You MUST produce valid JSON. Inside any JSON string value, every literal backslash MUST be written as TWO backslashes (\\\\).
+- Therefore every LaTeX command like \\frac, \\pi, \\sqrt MUST be written as \\\\frac, \\\\pi, \\\\sqrt in the JSON output.
+- CORRECT: "question_text": "Limiti tapın: $\\\\lim_{{n\\\\to\\\\infty}} \\\\frac{{4n-1}}{{n}}$"
+- WRONG (loses \\f, \\n, \\t as control chars): "question_text": "$\\lim \\frac{{4n-1}}{{n}}$"
+- Never output a bare single backslash followed by a letter — always double it.
+
 - Do NOT copy or closely paraphrase any DIM example
 
 Return JSON:
