@@ -25,6 +25,7 @@ export default function QuestionCard({ question, questionId, index }: Props) {
   const [showAnswer, setShowAnswer] = useState(false)
   const [selected, setSelected] = useState<string | null>(null)
   const [matchingSelection, setMatchingSelection] = useState<Record<string, string[]>>({})
+  const [pairsSelection, setPairsSelection] = useState<Record<string, string>>({})
 
   const isMatching = question.question_type === 'matching' || (question.options && question.correct_answer?.includes('1-'));
 
@@ -205,46 +206,104 @@ export default function QuestionCard({ question, questionId, index }: Props) {
         </div>
       )}
 
-      {/* Matching pairs — two-column layout */}
+      {/* Matching pairs — interactive two-column layout */}
       {question.matching_pairs && Object.keys(question.matching_pairs).length > 0 && (
-        <div className="space-y-3">
-          <div className="grid grid-cols-[auto_1fr_auto_1fr] gap-x-3 gap-y-2 items-center text-[0.9375rem]">
-            <div className="col-span-2 text-xs font-semibold uppercase tracking-wide text-accent-500 px-1">
-              Sol sütun
-            </div>
-            <div className="col-span-2 text-xs font-semibold uppercase tracking-wide text-accent-500 px-1">
-              Sağ sütun
-            </div>
-            {Object.entries(question.matching_pairs).map(([left, right], i) => (
-              <Fragment key={i}>
-                <span className="w-7 h-7 rounded-full bg-primary-100 text-primary-700 text-xs font-bold flex items-center justify-center">
-                  {i + 1}
-                </span>
-                <div className="px-3 py-2 rounded-lg border border-accent-200 bg-white text-accent-800">
-                  {renderText(left)}
+        (() => {
+          // Stable shuffle logic could be needed if we want identical renders, 
+          // but for a simple card we can derive a list of keys and options.
+          const entries = Object.entries(question.matching_pairs);
+          // Get unique Right options, sorted just to keep it deterministic
+          const rightOptions = Array.from(new Set(entries.map(e => e[1]))).sort();
+          
+          let allCorrect = true;
+          let anySelected = false;
+          entries.forEach(([left, correctRight]) => {
+            const userSelectedRightIdx = pairsSelection[left];
+            if (userSelectedRightIdx) anySelected = true;
+            if (!userSelectedRightIdx || rightOptions[parseInt(userSelectedRightIdx)] !== correctRight) {
+              allCorrect = false;
+            }
+          });
+
+          return (
+            <div className="space-y-4">
+              <div className="bg-accent-50/50 p-4 rounded-xl border border-accent-100 flex flex-col md:flex-row gap-6">
+                
+                {/* Left Column - Questions */}
+                <div className="flex-1 space-y-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-accent-500 mb-4 px-1">
+                    Sol sütun
+                  </div>
+                  {entries.map(([left], i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <span className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 text-sm font-bold flex items-center justify-center shrink-0">
+                        {i + 1}
+                      </span>
+                      <div className="flex-1 px-3 py-2 rounded-lg border border-accent-200 bg-white text-accent-800 text-[0.9375rem] shadow-sm">
+                        {renderText(left)}
+                      </div>
+                      
+                      {/* Selection Dropdown */}
+                      <select 
+                        value={pairsSelection[left] || ""}
+                        onChange={(e) => {
+                          if (showAnswer) return;
+                          setPairsSelection(prev => ({...prev, [left]: e.target.value}));
+                        }}
+                        disabled={showAnswer}
+                        className={`w-14 h-10 rounded-lg border text-center font-bold appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                          showAnswer 
+                            ? ((rightOptions[parseInt(pairsSelection[left])] === entries[i][1]) 
+                                ? 'bg-emerald-50 border-emerald-400 text-emerald-700' 
+                                : 'bg-rose-50 border-rose-400 text-rose-700')
+                            : 'bg-white border-accent-300 text-accent-700'
+                        }`}
+                      >
+                        <option value="" disabled>-</option>
+                        {rightOptions.map((_, optsIdx) => (
+                          <option key={optsIdx} value={optsIdx}>
+                            {String.fromCharCode(65 + optsIdx)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
                 </div>
-                <span className="w-7 h-7 rounded-full bg-accent-100 text-accent-500 text-xs font-bold flex items-center justify-center">
-                  {String.fromCharCode(65 + i)}
-                </span>
-                <div
-                  className={`px-3 py-2 rounded-lg border transition-all ${
-                    showAnswer
-                      ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
-                      : 'border-accent-200 bg-white text-accent-400 blur-[3px] select-none'
-                  }`}
-                >
-                  {renderText(right)}
+
+                {/* Right Column - Shuffled Options */}
+                <div className="flex-1 space-y-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-accent-500 mb-4 px-1">
+                    Sağ sütun (Variantlar)
+                  </div>
+                  {rightOptions.map((rightText, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <span className="w-8 h-8 rounded-full bg-accent-100 text-accent-600 text-sm font-bold flex items-center justify-center shrink-0">
+                        {String.fromCharCode(65 + i)}
+                      </span>
+                      <div className="flex-1 px-3 py-2 rounded-lg border border-accent-200 bg-white text-accent-700 text-[0.9375rem] shadow-sm">
+                        {renderText(rightText)}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </Fragment>
-            ))}
-          </div>
-          <button
-            onClick={() => setShowAnswer(!showAnswer)}
-            className="btn-primary text-sm"
-          >
-            {showAnswer ? 'Cavabı gizlət' : 'Cavabı göstər'}
-          </button>
-        </div>
+              </div>
+
+              {!showAnswer && (
+                <div className="flex justify-end pt-2">
+                  <button
+                    disabled={!anySelected}
+                    onClick={() => setShowAnswer(!showAnswer)}
+                    className="btn-primary text-sm px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cavabı Yoxla
+                  </button>
+                </div>
+              )}
+              
+              {/* If answer is shown via top level, we inject to the common result panel below */}
+            </div>
+          )
+        })()
       )}
 
       {/* Open-ended: show/hide answer */}
@@ -269,14 +328,31 @@ export default function QuestionCard({ question, questionId, index }: Props) {
 
       {/* Answer reveal */}
       {showAnswer && (
-        <div className={`rounded-lg p-5 space-y-4 ${isCorrect ? 'bg-emerald-50 border border-emerald-200' : 'bg-accent-50 border border-accent-200'}`}>
+        <div className={`rounded-lg p-5 space-y-4 ${
+          isCorrect || (question.matching_pairs ? true : false) 
+            ? 'bg-emerald-50 border border-emerald-200' 
+            : 'bg-accent-50 border border-accent-200'
+        }`}>
           {((selected && question.options && !isMatching) || (isMatching)) && (
             <div className={`text-sm font-semibold ${isCorrect ? 'text-emerald-600' : 'text-rose-600'}`}>
               {isCorrect ? 'Doğru cavab!' : `Səhv. Doğru cavab: ${question.correct_answer}`}
             </div>
           )}
           
-          {!question.options && (
+          {question.matching_pairs && (
+            <div className="text-sm font-semibold text-emerald-600">
+              Doğru Uyğunlaşdırma:
+              <ul className="mt-2 space-y-1 font-medium text-accent-800">
+                {Object.entries(question.matching_pairs).map(([left, right], i) => (
+                  <li key={i}>
+                    {i + 1}. {renderText(left)} &rarr; {renderText(right)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {!question.options && !question.matching_pairs && (
             <div className="bg-white p-3 rounded border border-primary-200 inline-block min-w-[120px]">
               <span className="text-xs font-semibold text-primary-500 uppercase tracking-wide block mb-1">Düzgün Cavab</span>
               <span className="text-primary-800 font-bold text-lg">{renderText(question.correct_answer)}</span>
