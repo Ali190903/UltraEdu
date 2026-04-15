@@ -68,15 +68,14 @@ def build_generation_prompt(
             "Plain numeric-only values like \"10\" or \"6500\" do NOT need delimiters."
         ),
         "matching": (
-            "Create a matching question (DIM 'uyğunluğu müəyyən edin' format) with TWO columns. "
-            "Left column: 3 to 5 items (concepts/formulas/definitions). "
-            "Right column: 3 to 5 items (matches for the left). "
-            "Provide matching_pairs as a JSON object where EACH KEY is a left-column item text "
-            "and EACH VALUE is its correct right-column match text (full text, not letter labels). "
-            "Example: {\"Pifaqor teoremi\": \"a² + b² = c²\", \"Kosinuslar teoremi\": \"c² = a² + b² - 2ab·cos(C)\"}. "
-            "correct_answer must be a human-readable summary of the mapping, e.g. '1-B; 2-A; 3-C' where "
-            "numbers refer to left column order and letters to right column order. "
-            "options field MUST be null for matching questions."
+            "Create a matching question (DIM 'uyğunluğu müəyyən edin' format) with TWO sets of items. "
+            "Set 1 (Numbered: 1, 2, 3...): Put these directly INSIDE the `question_text` separated by \\\\n. "
+            "Set 2 (Lettered: A, B, C, D, E): Put exactly 5 choices into the `options` object. "
+            "Example question_text: 'Uyğunluğu müəyyən edin:\\\\n1. Cüt funksiya\\\\n2. Tək funksiya\\\\n3. Dövrü funksiya'. "
+            "Example options: {\"A\": \"y=x^2\", \"B\": \"y=x^3\", \"C\": \"y=sin(x)\", \"D\": \"y=cos(x)\", \"E\": \"y=2^x\"}. "
+            "matching_pairs MUST BE null. "
+            "correct_answer must map numbers to letters using semicolons (multi-select is allowed). "
+            "Example correct_answer: '1-A,D; 2-B; 3-C'."
         ),
         "numeric_open": (
             "Create an open-ended mathematical question where the final answer is a pure numeric value "

@@ -164,9 +164,11 @@ export default function QuestionBankPage() {
                     </button>
                     <QuestionCard
                       question={{
+                        question_type: q.question_type,
                         question_text: q.question_text,
                         options: q.options || null,
                         matching_pairs: null,
+                        rubric: (q as any).rubric || null,
                         correct_answer: q.correct_answer,
                         explanation: q.explanation,
                         latex_content: q.latex_content || null,

@@ -12,8 +12,8 @@ const subjects = [
 export default function VariantBuilder() {
   const [form, setForm] = useState({
     title: '',
-    subject: 'az_dili',
-    grade: 9,
+    subject: 'riyaziyyat',
+    grades: new Set<number>([11]),
     easy: 10,
     medium: 10,
     hard: 5,
@@ -31,7 +31,7 @@ export default function VariantBuilder() {
       const res = await api.variants.generate({
         title: form.title || `Variant - ${new Date().toLocaleDateString('az')}`,
         subject: form.subject,
-        grade: form.grade,
+        grade: Array.from(form.grades),
         total_questions: total,
         difficulty_dist: { easy: form.easy, medium: form.medium, hard: form.hard },
       })
@@ -81,20 +81,31 @@ export default function VariantBuilder() {
         <div>
           <label className="text-sm font-semibold text-accent-700 mb-2 block">Sinif</label>
           <div className="flex gap-2">
-            {[9, 10, 11].map((g) => (
-              <button
-                key={g}
-                type="button"
-                onClick={() => setForm({ ...form, grade: g })}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-semibold border-1.5 transition-all duration-200 cursor-pointer whitespace-nowrap ${
-                  form.grade === g
-                    ? 'bg-primary-50 border-primary-400 text-primary-700'
-                    : 'bg-white border-accent-200 text-accent-500 hover:border-accent-300'
-                }`}
-              >
-                {g}-{g === 11 ? 'ci' : 'cu'}
-              </button>
-            ))}
+            {[9, 10, 11].map((g) => {
+              const isActive = form.grades.has(g)
+              return (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => {
+                    const next = new Set(form.grades)
+                    if (next.has(g)) {
+                      if (next.size > 1) next.delete(g)
+                    } else {
+                      next.add(g)
+                    }
+                    setForm({ ...form, grades: next })
+                  }}
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-semibold border-1.5 transition-all duration-200 cursor-pointer whitespace-nowrap ${
+                    isActive
+                      ? 'bg-primary-50 border-primary-400 text-primary-700'
+                      : 'bg-white border-accent-200 text-accent-500 hover:border-accent-300'
+                  }`}
+                >
+                  {g}-{g === 11 ? 'ci' : 'cu'}
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -228,9 +239,11 @@ export default function VariantBuilder() {
             <QuestionCard
               key={item.question?.id || idx}
               question={{
+                question_type: item.question?.question_type,
                 question_text: item.question?.question_text || '',
                 options: item.question?.options || null,
                 matching_pairs: null,
+                rubric: item.question?.rubric || null,
                 correct_answer: item.question?.correct_answer || '',
                 explanation: item.question?.explanation || '',
                 latex_content: item.question?.latex_content || null,

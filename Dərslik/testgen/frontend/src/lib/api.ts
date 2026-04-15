@@ -6,9 +6,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     'Content-Type': 'application/json',
     ...((options.headers as Record<string, string>) || {}),
   }
+  // Keep Bearer header as fallback during transition
   if (token) headers['Authorization'] = `Bearer ${token}`
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers })
+  const res = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers,
+    credentials: 'include',  // Send httpOnly cookies
+  })
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: res.statusText }))
     throw new Error(error.detail || 'Request failed')
@@ -23,6 +28,8 @@ export const api = {
       request('/api/auth/register', { method: 'POST', body: JSON.stringify(data) }),
     login: (data: { email: string; password: string }) =>
       request<{ access_token: string }>('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+    logout: () =>
+      request('/api/auth/logout', { method: 'POST' }),
     me: () => request<import('./types').User>('/api/auth/me'),
   },
   subjects: {
@@ -43,6 +50,7 @@ export const api = {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
       const res = await fetch(`${API_URL}/api/variants/${id}/export?format=${format}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include',
       })
       if (!res.ok) {
         const error = await res.json().catch(() => ({ detail: res.statusText }))

@@ -58,9 +58,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const logout = useCallback(() => {
+    api.auth.logout().catch(() => {})  // Clear httpOnly cookie
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     setUser(null)
+    window.location.href = '/' // Logout edəndə ana səhifəyə göndərsin
   }, [])
 
   return React.createElement(

@@ -28,8 +28,11 @@ from data_pipeline.chunker import Chunker
 from data_pipeline.dim_parser import (
     DimParser,
     DIM_RIYAZIYYAT_1_CHAPTERS,
+    DIM_RIYAZIYYAT_2_CHAPTERS,
     ANSWER_KEY_START,
     ANSWER_KEY_END,
+    ANSWER_KEY_START_2,
+    ANSWER_KEY_END_2,
 )
 from data_pipeline.indexer import Indexer
 
@@ -170,6 +173,10 @@ async def process_dim_tests(
         chapters = DIM_RIYAZIYYAT_1_CHAPTERS
         ans_start = ANSWER_KEY_START
         ans_end = ANSWER_KEY_END
+    elif subject == "riyaziyyat" and "riyaziyyat_2" in cache_key:
+        chapters = DIM_RIYAZIYYAT_2_CHAPTERS
+        ans_start = ANSWER_KEY_START_2
+        ans_end = ANSWER_KEY_END_2
     else:
         chapters = DIM_RIYAZIYYAT_1_CHAPTERS
         ans_start = ANSWER_KEY_START

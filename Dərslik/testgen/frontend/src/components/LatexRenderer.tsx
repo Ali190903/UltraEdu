@@ -2,8 +2,15 @@
 import { useMemo } from 'react'
 import katex from 'katex'
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 function renderLatex(content: string): string {
-  // Split by $$...$$ (display) and $...$ (inline), preserving delimiters
   const parts = content.split(/(\$\$[\s\S]+?\$\$|\$[^$]+?\$)/g)
   return parts
     .map((part) => {
@@ -14,7 +21,7 @@ function renderLatex(content: string): string {
             displayMode: true,
           })
         } catch {
-          return part
+          return escapeHtml(part)
         }
       }
       if (part.startsWith('$') && part.endsWith('$') && part.length > 2) {
@@ -24,10 +31,10 @@ function renderLatex(content: string): string {
             displayMode: false,
           })
         } catch {
-          return part
+          return escapeHtml(part)
         }
       }
-      return part
+      return escapeHtml(part).replace(/\\n|\n/g, '<br />')
     })
     .join('')
 }

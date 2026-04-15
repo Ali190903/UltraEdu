@@ -41,6 +41,33 @@ DIM_RIYAZIYYAT_1_CHAPTERS = [
 ANSWER_KEY_START = 210
 ANSWER_KEY_END   = 231
 
+# DIM Riyaziyyat II hissə — chapter map (0-indexed PDF page ranges, end exclusive)
+# Book page = index + 3  |  index = book_page - 3
+DIM_RIYAZIYYAT_2_CHAPTERS = [
+    {"id": "ch01", "name": "Funksiyalar və qrafiklər", "start": 1, "end": 23},
+    {"id": "ch02", "name": "Triqonometrik funksiyalar", "start": 23, "end": 61},
+    {"id": "ch03", "name": "Triqonometrik tənliklər", "start": 61, "end": 80},
+    {"id": "ch04", "name": "Üstlü və loqarifmik funksiyalar", "start": 80, "end": 99},
+    {"id": "ch05", "name": "Üstlü, loqarifmik tənliklər və bərabərsizliklər", "start": 99, "end": 118},
+    {"id": "ch06", "name": "Ədədi ardıcıllığın limiti. Funksiyanın limiti", "start": 118, "end": 128},
+    {"id": "ch07", "name": "Törəmə və tətbiqləri", "start": 128, "end": 145},
+    {"id": "ch08", "name": "İbtidai funksiya və inteqral", "start": 145, "end": 162},
+    {"id": "ch09", "name": "Kompleks ədədlər", "start": 162, "end": 167},
+    {"id": "ch10", "name": "Birləşmələr nəzəriyyəsi. Ehtimal nəzəriyyəsi və statistika", "start": 167, "end": 193},
+    {"id": "ch11", "name": "Fiqurların sahəsi", "start": 193, "end": 217},
+    {"id": "ch12", "name": "Hərəkət. Oxşarlıq", "start": 217, "end": 233},
+    {"id": "ch13", "name": "Vektorlar. Koordinatlar metodu", "start": 233, "end": 253},
+    {"id": "ch14", "name": "Fəzada düz xətlər və müstəvilər", "start": 253, "end": 270},
+    {"id": "ch15", "name": "Çoxüzlülər, onların səthi və həcmi", "start": 270, "end": 290},
+    {"id": "ch16", "name": "Fırlanma cisimləri", "start": 290, "end": 307},
+    {"id": "ch17", "name": "Situasiya məsələləri", "start": 307, "end": 317},
+    {"id": "ch18", "name": "İsbat məsələləri", "start": 317, "end": 320},
+    {"id": "imtahan", "name": "Qəbul imtahanı sualları", "start": 320, "end": 324},
+]
+
+ANSWER_KEY_START_2 = 324
+ANSWER_KEY_END_2   = 340
+
 
 def extract_pages_bytes(pdf_path: str, start: int, end: int) -> bytes:
     """Return bytes of pages [start, end) from PDF (0-indexed)."""
@@ -113,7 +140,7 @@ class DimParser:
                 else:
                     raise
 
-    async def _pass1_extract(self, chapter_pdf_bytes: bytes, chapter_name: str) -> list[dict]:
+    async def _pass1_extract(self, chapter_pdf_bytes: bytes, chapter_name: str, target_count: int = 30) -> list[dict]:
         """Pass 1: Extract one representative question per unique archetype."""
         prompt = f"""This PDF contains questions from the "{chapter_name}" chapter of a DIM (Dövlət İmtahan Mərkəzi) math test booklet (2025).
 
@@ -137,13 +164,14 @@ Include ALL genuinely different question types:
 - MCQ, open_ended, matching (uyğunluğu müəyyən edin) — each archetype once
 - Questions with images (mark has_image: true) — each visual archetype once
 
-Target: 25-40 unique archetypes per chapter (not 150+).
+Target: {target_count} unique archetypes (DO NOT extract near-duplicates or similar problems with different numbers).
+If this is a sub-chapter (Part X of Y), focus only on the MOST essential archetypes found in these specific pages.
 
 Return ONLY a valid JSON array:
 [{{"question_text":"...","options":{{"A":"...","B":"...","C":"...","D":"...","E":"..."}},"subtopic":"...","question_type":"mcq","has_image":false,"image_description":null}}]"""
 
         pdf_part = types.Part.from_bytes(data=chapter_pdf_bytes, mime_type="application/pdf")
-        raw = await self._call_gemini([pdf_part, prompt], timeout=120)
+        raw = await self._call_gemini([pdf_part, prompt], timeout=300)
         questions = parse_llm_json(raw)
         return questions if isinstance(questions, list) else []
 
@@ -174,7 +202,7 @@ QUESTIONS:
                 [{"i": batch_start + j, "q": q["question_text"], "opts": q.get("options")} for j, q in enumerate(batch)],
                 ensure_ascii=False,
             )
-            raw = await self._call_gemini([PASS2_PROMPT + batch_json], timeout=90)
+            raw = await self._call_gemini([PASS2_PROMPT + batch_json], timeout=300)
             solutions = parse_llm_json(raw)
             if isinstance(solutions, list):
                 for s in solutions:
@@ -190,18 +218,59 @@ QUESTIONS:
 
     async def parse_chapter(
         self,
-        chapter_pdf_bytes: bytes,
+        pdf_path: str,
+        start: int,
+        end: int,
         chapter_name: str,
         subject: str,
+        chunk_size: int = 8,
     ) -> list[dict]:
         """
-        Two-pass extraction:
-        Pass 1 → extract ALL questions (max count, no solving)
-        Pass 2 → solve all questions in one call (no PDF, text only)
+        Two-pass extraction with chunking for Pass 1.
+        Chunking prevents 300s timeouts on large/complex PDF segments.
         """
-        print(f"      Pass 1: extracting questions...")
-        questions = await self._pass1_extract(chapter_pdf_bytes, chapter_name)
-        print(f"      Pass 1: {len(questions)} questions extracted")
+        all_pass1_questions: list[dict] = []
+        total_pages = end - start
+
+        if total_pages > chunk_size:
+            # Chunking logic
+            chunks = []
+            curr = start
+            while curr < end:
+                c_end = min(curr + chunk_size, end)
+                chunks.append((curr, c_end))
+                # 1-page overlap for continuity, but don't move backwards
+                curr += chunk_size - 1 if (curr + chunk_size < end) else chunk_size
+
+            print(f"      Pass 1: splitting into {len(chunks)} chunks...")
+            target_per_chunk = max(10, 40 // len(chunks))
+            for idx, (c_start, c_end) in enumerate(chunks, 1):
+                print(f"      [Chunk {idx}/{len(chunks)}] Extracting pages {c_start}-{c_end} (Target: {target_per_chunk})...")
+                chunk_bytes = extract_pages_bytes(pdf_path, c_start, c_end)
+                chunk_qs = await self._pass1_extract(chunk_bytes, f"{chapter_name} (Hissə {idx})", target_count=target_per_chunk)
+                all_pass1_questions.extend(chunk_qs)
+                if idx < len(chunks):
+                    await asyncio.sleep(3) # Small delay between chunks
+        else:
+            print(f"      Pass 1: extracting questions...")
+            chapter_pdf_bytes = extract_pages_bytes(pdf_path, start, end)
+            all_pass1_questions = await self._pass1_extract(chapter_pdf_bytes, chapter_name)
+
+        print(f"      Pass 1: {len(all_pass1_questions)} total questions extracted")
+
+        if not all_pass1_questions:
+            return []
+
+        # Deduplicate archetypes if overlap caused tokens to repeat
+        unique_qs = []
+        seen_texts = set()
+        for q in all_pass1_questions:
+            txt = q.get("question_text", "").strip()
+            if txt and txt not in seen_texts:
+                unique_qs.append(q)
+                seen_texts.add(txt)
+        
+        questions = unique_qs
 
         if not questions:
             return []
@@ -281,15 +350,15 @@ QUESTIONS:
             chapter_pages = ch["end"] - ch["start"]
             print(f"   [{i}/{total}] Processing: {ch['name']} ({chapter_pages} pages) ...")
 
-            chapter_bytes = extract_pages_bytes(pdf_path, ch["start"], ch["end"])
-
             try:
                 questions = await self.parse_chapter(
-                    chapter_pdf_bytes=chapter_bytes,
+                    pdf_path=pdf_path,
+                    start=ch["start"],
+                    end=ch["end"],
                     chapter_name=ch["name"],
                     subject=subject,
                 )
-                print(f"      → {len(questions)} questions total")
+                print(f"      → {len(questions)} total unique questions")
 
                 cache_file.write_text(
                     json.dumps(questions, ensure_ascii=False, indent=2),

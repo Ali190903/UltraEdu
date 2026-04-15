@@ -13,8 +13,10 @@ _VALID_MCQ_KEYS = {"A", "B", "C", "D", "E"}
 # Forbidden calculus keywords for grade-11 buraxılış math. Detected in question
 # text + explanation; if hit, reject the question as out-of-scope.
 _CALCULUS_RE = re.compile(
-    r"(törəmə|tÃ¶rÉmÉ|inteqral|maksimum hÉcm|minimum hÉcm|ekstremum|"
-    r"V'\(|S'\(|f'\(|\\int|\\frac\{d[A-Za-z]\}\{d[A-Za-z]\})",
+    r"(törəmə|diferensial|inteqral|ibtidai funksiya|"
+    r"maksimum həcm|minimum həcm|ekstremum|əyrinin toxunanı|"
+    r"artım sürəti|törəmənin tətbiqi|optimallaşdırma|"
+    r"V'\(|S'\(|f'\(|y'\(|\\int|\\frac\{d[A-Za-z]\}\{d[A-Za-z]\})",
     re.IGNORECASE,
 )
 

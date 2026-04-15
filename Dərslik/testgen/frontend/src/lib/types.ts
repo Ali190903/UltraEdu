@@ -12,12 +12,13 @@ export interface Question {
   grade: number
   topic: string
   subtopic: string | null
-  question_type: 'mcq' | 'matching' | 'open_ended'
+  question_type: 'mcq' | 'matching' | 'open_ended' | 'numeric_open' | 'written_solution'
   difficulty: 'easy' | 'medium' | 'hard'
   bloom_level: string
   question_text: string
   options: Record<string, string> | null
   matching_pairs: Record<string, string> | null
+  rubric: Record<string, string> | null
   correct_answer: string
   explanation: string
   latex_content: string | null

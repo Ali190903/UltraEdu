@@ -123,7 +123,7 @@ async def create_variant(
     user_id: uuid.UUID,
     title: str,
     subject: str,
-    grade: int,
+    grade: list[int],
     total_questions: int,
     difficulty_dist: dict,
     topic_dist: dict | None = None,
@@ -169,35 +169,40 @@ async def create_variant(
     else:
         types_expanded.extend(["mcq"] * target_total)
 
+    grades_expanded: list[int] = []
+    for i in range(target_total):
+        grades_expanded.append(grade[i % len(grade)])
+
     random.shuffle(topics_expanded)
     random.shuffle(difficulties_expanded)
     random.shuffle(types_expanded)
+    random.shuffle(grades_expanded)
     
-    tasks: list[tuple[str, str, str]] = list(zip(topics_expanded, difficulties_expanded, types_expanded))
+    tasks: list[tuple[str, str, str, int]] = list(zip(topics_expanded, difficulties_expanded, types_expanded, grades_expanded))
 
     # Generate questions (5 concurrent)
     semaphore = asyncio.Semaphore(5)
 
-    async def gen_one(topic: str, difficulty: str, q_type: str):
+    async def gen_one(topic: str, difficulty: str, q_type: str, g: int):
         async with semaphore:
             return await pipeline.run(
                 subject=subject,
-                grade=grade,
+                grade=g,
                 topic=topic,
                 difficulty=difficulty,
                 question_type=q_type,
             )
 
-    async def run_batch(batch_tasks: list[tuple[str, str, str]]):
+    async def run_batch(batch_tasks: list[tuple[str, str, str, int]]):
         return await asyncio.gather(
-            *[gen_one(t, d, qt) for t, d, qt in batch_tasks],
+            *[gen_one(t, d, qt, g) for t, d, qt, g in batch_tasks],
             return_exceptions=True,
         )
 
     # Round 1: full batch
     results = await run_batch(tasks)
-    successful: list[tuple[tuple[str, str, str], dict]] = []
-    failed_tasks: list[tuple[str, str, str]] = []
+    successful: list[tuple[tuple[str, str, str, int], dict]] = []
+    failed_tasks: list[tuple[str, str, str, int]] = []
     
     for i, r in enumerate(results):
         if not isinstance(r, Exception) and r["validation"]["passed"]:
@@ -211,11 +216,10 @@ async def create_variant(
     
     while len(successful) < target_total and refill_round < REFILL_ROUNDS:
         refill_round += 1
-        refill_tasks: list[tuple[str, str, str]] = []
-        for _, _, q_type in failed_tasks:
-            # Re-roll topic and difficulty from whole pool to increase success chance
+        refill_tasks: list[tuple[str, str, str, int]] = []
+        for _, _, q_type, _ in failed_tasks:
             refill_tasks.append(
-                (random.choice(topic_pool), random.choice(difficulties_expanded), q_type)
+                (random.choice(topic_pool), random.choice(difficulties_expanded), q_type, random.choice(grade))
             )
             
         logger.info(
@@ -246,11 +250,11 @@ async def create_variant(
         title, target_total, len(successful), failed_val_count, exc_count, refill_round,
     )
 
-    for order, ((topic, difficulty, q_type), result) in enumerate(successful, start=1):
+    for order, ((topic, difficulty, q_type, g), result) in enumerate(successful, start=1):
         q = result["question"]
         question = Question(
             subject=subject,
-            grade=grade,
+            grade=g,
             topic=topic,
             question_type=q_type,
             difficulty=difficulty,

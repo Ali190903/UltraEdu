@@ -7,15 +7,20 @@ def export_json(variant_data: dict) -> bytes:
     questions = []
     for item in variant_data["questions"]:
         q = item["question"]
-        questions.append({
+        entry = {
             "order": item["order"],
+            "question_type": q.question_type,
             "question_text": q.question_text,
-            "options": q.options,
             "correct_answer": q.correct_answer,
             "explanation": q.explanation,
             "difficulty": q.difficulty,
             "topic": q.topic,
-        })
+        }
+        if q.options:
+            entry["options"] = q.options
+        if q.rubric:
+            entry["rubric"] = q.rubric
+        questions.append(entry)
 
     result = {
         "title": variant_data["variant"].title,
@@ -35,10 +40,15 @@ def export_text(variant_data: dict) -> str:
     ]
     for item in variant_data["questions"]:
         q = item["question"]
+        q_type = getattr(q, 'question_type', 'mcq') or 'mcq'
         lines.append(f"**{item['order']}.** {q.question_text}")
-        if q.options:
+        if q.options and q_type == 'mcq':
             for key, val in q.options.items():
                 lines.append(f"   {key}) {val}")
+        elif q_type == 'numeric_open':
+            lines.append("   [Cavab: ________]")
+        elif q_type == 'written_solution':
+            lines.append("   [Həlli yazın]")
         lines.append("")
 
     lines.append("\n--- Cavablar ---\n")
@@ -73,20 +83,27 @@ def _build_html(variant_data: dict) -> str:
     for item in variant_data["questions"]:
         q = item["question"]
         order = item["order"]
+        q_type = getattr(q, 'question_type', 'mcq') or 'mcq'
         qtext = _esc(q.question_text)
-        opts_html = ""
-        if q.options:
+        body_html = ""
+
+        if q.options and q_type == 'mcq':
             rows = "".join(
                 f'<div class="opt"><span class="opt-key">{_esc(k)})</span> '
                 f'<span class="opt-val">{_esc(val)}</span></div>'
                 for k, val in q.options.items()
             )
-            opts_html = f'<div class="opts">{rows}</div>'
+            body_html = f'<div class="opts">{rows}</div>'
+        elif q_type == 'numeric_open':
+            body_html = '<div class="answer-box">Cavab: ____________</div>'
+        elif q_type == 'written_solution':
+            body_html = '<div class="answer-box written">Həlli yazın:</div>'
+
         question_blocks.append(
             f'<div class="q">'
             f'<div class="q-head"><span class="q-num">{order}.</span> '
             f'<span class="q-text">{qtext}</span></div>'
-            f'{opts_html}'
+            f'{body_html}'
             f'</div>'
         )
 
@@ -130,6 +147,8 @@ def _build_html(variant_data: dict) -> str:
   .answers li {{ break-inside: avoid; margin: 2px 0; font-size: 10pt; }}
   .a-num {{ color: #64748b; margin-right: 4px; }}
   .a-val {{ font-weight: 600; }}
+  .answer-box {{ border: 1.5px dashed #94a3b8; border-radius: 6px; padding: 10px 14px; margin: 8px 0 0 22px; color: #64748b; font-size: 10pt; }}
+  .answer-box.written {{ min-height: 100px; }}
   /* KaTeX sizing — match site */
   .katex {{ font-size: 1.05em; }}
   @page {{ size: A4; margin: 16mm 0; }}
@@ -180,7 +199,7 @@ async def export_pdf(variant_data: dict) -> bytes:
             # Wait for KaTeX auto-render to finish marking the body
             await page.wait_for_selector("body[data-katex-ready='1']", timeout=15000)
             # Ensure all webfonts (especially KaTeX math fonts) are fully loaded before rendering
-            await page.evaluate("await document.fonts.ready")
+            await page.evaluate("document.fonts.ready")
             pdf = await page.pdf(
                 format="A4",
                 print_background=True,
@@ -204,11 +223,18 @@ def _build_markdown(variant_data: dict) -> str:
     ]
     for item in variant_data["questions"]:
         q = item["question"]
+        q_type = getattr(q, 'question_type', 'mcq') or 'mcq'
         lines.append(f"**{item['order']}.** {q.question_text}")
         lines.append("")
-        if q.options:
+        if q.options and q_type == 'mcq':
             for k, val in q.options.items():
                 lines.append(f"- **{k})** {val}")
+            lines.append("")
+        elif q_type == 'numeric_open':
+            lines.append("*Cavab: ________*")
+            lines.append("")
+        elif q_type == 'written_solution':
+            lines.append("*Həllini yazın:*")
             lines.append("")
 
     lines.append("")

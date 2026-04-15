@@ -5,6 +5,7 @@ import ReportButton from './ReportButton'
 
 interface Props {
   question: {
+    question_type?: 'mcq' | 'matching' | 'open_ended'
     question_text: string
     options: Record<string, string> | null
     matching_pairs: Record<string, string> | null
@@ -23,8 +24,28 @@ interface Props {
 export default function QuestionCard({ question, questionId, index }: Props) {
   const [showAnswer, setShowAnswer] = useState(false)
   const [selected, setSelected] = useState<string | null>(null)
+  const [matchingSelection, setMatchingSelection] = useState<Record<string, string[]>>({})
 
-  const isCorrect = selected === question.correct_answer
+  const isMatching = question.question_type === 'matching' || (question.options && question.correct_answer?.includes('1-'));
+
+  const matchingRows = isMatching
+    ? Array.from(new Set((question.correct_answer || '').split(';').map(p => p.trim().split('-')[0]).filter(Boolean)))
+    : [];
+
+  const checkMatching = () => {
+    const userStr = matchingRows
+      .map(r => {
+        const sel = matchingSelection[r] || [];
+        return sel.length > 0 ? `${r}-${sel.join(',')}` : null;
+      })
+      .filter(Boolean)
+      .join('; ');
+    
+    const norm = (s: string) => s.replace(/\s/g, '').toLowerCase();
+    return norm(userStr) === norm(question.correct_answer);
+  };
+
+  const isCorrect = isMatching ? checkMatching() : selected === question.correct_answer
 
   const renderText = (text: string) =>
     text.includes('$') ? <LatexRenderer content={text} /> : <span>{text}</span>
@@ -65,8 +86,8 @@ export default function QuestionCard({ question, questionId, index }: Props) {
         {renderText(question.question_text)}
       </div>
 
-      {/* MCQ options */}
-      {question.options && (
+      {/* MCQ options / Matching Matrix */}
+      {question.options && !isMatching && (
         <div className="space-y-2">
           {Object.entries(question.options).map(([key, val]) => {
             const isThisCorrect = key === question.correct_answer
@@ -106,6 +127,81 @@ export default function QuestionCard({ question, questionId, index }: Props) {
               </button>
             )
           })}
+        </div>
+      )}
+
+      {/* Matching Matrix UI */}
+      {question.options && isMatching && (
+        <div className="space-y-6 bg-accent-50/50 p-4 rounded-xl border border-accent-100">
+          <div className="space-y-3 pl-2">
+            {Object.entries(question.options).map(([key, val]) => (
+              <div key={key} className="flex items-start gap-3 text-[0.9375rem]">
+                <span className="font-bold text-accent-500 uppercase shrink-0 pt-0.5 w-5 text-right">{key})</span>
+                <span className="text-accent-800">{renderText(val)}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-3 pt-3 border-t border-accent-200">
+            <p className="text-xs font-semibold uppercase tracking-wide text-accent-500 mb-2">Variantları təyin edin:</p>
+            {matchingRows.map((row) => (
+              <div key={row} className="flex items-center gap-4 bg-white p-3 rounded-lg border border-accent-200 shadow-sm">
+                <span className="w-8 h-8 flex items-center justify-center font-bold text-lg text-primary-700 bg-primary-50 rounded-full shrink-0">
+                  {row}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {Object.keys(question.options || {}).map(opt => {
+                    const isSelected = (matchingSelection[row] || []).includes(opt);
+                    // Determine if correct in showAnswer layout
+                    const correctAnswerParts = question.correct_answer.split(';').map(p => p.trim());
+                    const matchedPart = correctAnswerParts.find(p => p.startsWith(`${row}-`));
+                    const correctAnswersForRow = matchedPart ? matchedPart.split('-')[1].split(',') : [];
+                    const isCorrectForThisOpt = correctAnswersForRow.includes(opt);
+
+                    let btnClass = 'bg-accent-50 border-accent-200 text-accent-600 hover:bg-accent-100';
+                    if (showAnswer) {
+                      if (isCorrectForThisOpt) btnClass = 'bg-emerald-500 text-white border-emerald-600';
+                      else if (isSelected && !isCorrectForThisOpt) btnClass = 'bg-rose-500 text-white border-rose-600';
+                      else btnClass = 'bg-accent-50 text-accent-300 border-accent-100 opacity-50';
+                    } else if (isSelected) {
+                      btnClass = 'bg-primary-600 text-white border-primary-700 shadow-inner';
+                    }
+
+                    return (
+                      <button
+                        key={opt}
+                        onClick={() => {
+                          if (showAnswer) return;
+                          setMatchingSelection(prev => {
+                            const current = prev[row] || [];
+                            const updated = current.includes(opt) 
+                              ? current.filter(c => c !== opt) 
+                              : [...current, opt].sort();
+                            return { ...prev, [row]: updated };
+                          });
+                        }}
+                        className={`w-9 h-9 rounded transition-all font-bold uppercase text-sm border ${btnClass} ${showAnswer ? 'cursor-default' : 'cursor-pointer'}`}
+                      >
+                        {opt}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {!showAnswer && (
+            <div className="pt-2 flex justify-end">
+              <button
+                disabled={Object.values(matchingSelection).every(arr => arr.length === 0)}
+                onClick={() => setShowAnswer(true)}
+                className="btn-primary text-sm px-6 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cavabı Yoxla
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -152,7 +248,7 @@ export default function QuestionCard({ question, questionId, index }: Props) {
       )}
 
       {/* Open-ended: show/hide answer */}
-      {!question.options && !question.matching_pairs && (
+      {!question.options && !question.matching_pairs && !isMatching && (
         <div className="pt-2">
           {question.rubric && (
             <p className="text-xs text-accent-500 mb-3 flex items-center gap-1.5">
@@ -174,9 +270,9 @@ export default function QuestionCard({ question, questionId, index }: Props) {
       {/* Answer reveal */}
       {showAnswer && (
         <div className={`rounded-lg p-5 space-y-4 ${isCorrect ? 'bg-emerald-50 border border-emerald-200' : 'bg-accent-50 border border-accent-200'}`}>
-          {selected && question.options && (
+          {((selected && question.options && !isMatching) || (isMatching)) && (
             <div className={`text-sm font-semibold ${isCorrect ? 'text-emerald-600' : 'text-rose-600'}`}>
-              {isCorrect ? 'Dogru cavab!' : `Səhv. Dogru cavab: ${question.correct_answer}`}
+              {isCorrect ? 'Doğru cavab!' : `Səhv. Doğru cavab: ${question.correct_answer}`}
             </div>
           )}
           

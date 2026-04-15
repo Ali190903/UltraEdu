@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 1440
     google_client_id: str = ""
     google_client_secret: str = ""
-    similarity_threshold: float = 0.85
+    similarity_threshold: float = 0.88
     max_generation_attempts: int = 3
 
     # Data Pipeline (local paths, not used in Docker)

@@ -3,37 +3,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
 from core.database import get_db
-from core.gemini_client import GeminiClient
-from core.embedding import EmbeddingClient
-from core.qdrant_client import QdrantWrapper
+from core.clients import get_pipeline
 from auth.security import get_current_user
 from models.user import User
 from models.question import Question
 from models.generation_log import GenerationLog
 from generation.schemas import GenerateRequest
-from generation.retrieval import RetrievalStage
-from generation.generator import GenerationStage
-from generation.validator import ValidationStage
 from generation.pipeline import GenerationPipeline
 
 router = APIRouter(prefix="/api/generation", tags=["generation"])
-
-
-def get_pipeline() -> GenerationPipeline:
-    gemini = GeminiClient(api_key=settings.gemini_api_key)
-    embedding = EmbeddingClient(api_key=settings.gemini_api_key)
-    qdrant = QdrantWrapper(url=settings.qdrant_url)
-    return GenerationPipeline(
-        retrieval=RetrievalStage(embedding=embedding, qdrant=qdrant),
-        generator=GenerationStage(gemini=gemini),
-        validator=ValidationStage(
-            gemini=gemini,
-            embedding=embedding,
-            qdrant=qdrant,
-            similarity_threshold=settings.similarity_threshold,
-        ),
-        max_attempts=settings.max_generation_attempts,
-    )
 
 
 @router.post("/generate")
@@ -53,6 +31,7 @@ async def generate_question(
 
     # Save question to DB regardless of validation result (return with warning if failed)
     q = result["question"]
+    q["question_type"] = req.question_type
     question = Question(
         subject=req.subject,
         grade=req.grade,

@@ -6,37 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
 from core.database import get_db
-from core.gemini_client import GeminiClient
-from core.embedding import EmbeddingClient
-from core.qdrant_client import QdrantWrapper
+from core.clients import get_pipeline, get_qdrant
 from auth.security import get_current_user
 from models.user import User
-from generation.retrieval import RetrievalStage
-from generation.generator import GenerationStage
-from generation.validator import ValidationStage
-from generation.pipeline import GenerationPipeline
 from variants.schemas import VariantCreateRequest, VariantResponse
 from variants.service import create_variant, list_variants, get_variant_with_questions
 from variants.export import export_json, export_pdf, export_word, export_text
 
 router = APIRouter(prefix="/api/variants", tags=["variants"])
-
-
-def get_pipeline() -> GenerationPipeline:
-    gemini = GeminiClient(api_key=settings.gemini_api_key)
-    embedding = EmbeddingClient(api_key=settings.gemini_api_key)
-    qdrant = QdrantWrapper(url=settings.qdrant_url)
-    return GenerationPipeline(
-        retrieval=RetrievalStage(embedding=embedding, qdrant=qdrant),
-        generator=GenerationStage(gemini=gemini),
-        validator=ValidationStage(
-            gemini=gemini,
-            embedding=embedding,
-            qdrant=qdrant,
-            similarity_threshold=settings.similarity_threshold,
-        ),
-        max_attempts=settings.max_generation_attempts,
-    )
 
 
 @router.post("/generate", response_model=VariantResponse, status_code=201)
@@ -49,7 +26,7 @@ async def generate_variant(
         raise HTTPException(status_code=403, detail="Teachers only")
 
     pipeline = get_pipeline()
-    qdrant = QdrantWrapper(url=settings.qdrant_url)
+    qdrant = get_qdrant()
     variant = await create_variant(
         db=db,
         pipeline=pipeline,
@@ -106,8 +83,10 @@ async def get_one(
                     "latex_content": item["question"].latex_content,
                     "source_reference": item["question"].source_reference,
                     "bloom_level": item["question"].bloom_level,
+                    "question_type": item["question"].question_type,
                     "difficulty": item["question"].difficulty,
                     "topic": item["question"].topic,
+                    "rubric": item["question"].rubric,
                 },
             }
             for item in data["questions"]

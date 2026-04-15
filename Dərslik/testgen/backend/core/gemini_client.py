@@ -5,6 +5,8 @@ from google.genai import types
 
 LLM_MODEL = "gemini-3-flash-preview"
 
+MAX_RETRIES = 10
+
 RETRYABLE = ("429", "503", "UNAVAILABLE", "RESOURCE_EXHAUSTED", "high demand", "overloaded", "No capacity")
 
 
@@ -15,7 +17,7 @@ class GeminiClient:
     async def _call(self, contents, config: types.GenerateContentConfig, timeout: int = 60) -> str:
         """API call with retry for 503/429 errors."""
         attempt = 0
-        while True:
+        while attempt < MAX_RETRIES:
             try:
                 response = await asyncio.wait_for(
                     self.client.aio.models.generate_content(
@@ -43,6 +45,7 @@ class GeminiClient:
                     await asyncio.sleep(delay)
                 else:
                     raise
+        raise RuntimeError(f"Gemini API failed after {MAX_RETRIES} retries")
 
     async def generate(self, prompt: str, system_instruction: str | None = None) -> str:
         config = types.GenerateContentConfig(
