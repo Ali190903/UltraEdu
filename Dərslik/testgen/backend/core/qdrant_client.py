@@ -1,3 +1,4 @@
+import time
 from qdrant_client import QdrantClient, models
 
 TEXTBOOKS_COLLECTION = "textbooks"
@@ -8,6 +9,7 @@ VECTOR_DIM = 3072
 class QdrantWrapper:
     def __init__(self, url: str):
         self.client = QdrantClient(url=url)
+        self._topic_dist_cache = {}  # In-memory TTL cache
 
     def ensure_collections(self):
         for name in [TEXTBOOKS_COLLECTION, DIM_TESTS_COLLECTION]:
@@ -61,6 +63,12 @@ class QdrantWrapper:
 
     def get_topic_distribution(self, collection: str, subject: str) -> dict[str, int]:
         """Scroll all points in a collection for a subject and count topic occurrences."""
+        cache_key = f"{collection}_{subject}"
+        cached = self._topic_dist_cache.get(cache_key)
+        # Əgər cache varsa və 1 saatı (3600 san) keçməyibsə, cache-i qaytar
+        if cached and (time.time() - cached["time"] < 3600):
+            return cached["data"]
+
         topic_counts: dict[str, int] = {}
         offset = None
         while True:
@@ -80,4 +88,6 @@ class QdrantWrapper:
             if next_offset is None:
                 break
             offset = next_offset
+
+        self._topic_dist_cache[cache_key] = {"time": time.time(), "data": topic_counts}
         return topic_counts
