@@ -5,7 +5,7 @@ import ReportButton from './ReportButton'
 
 interface Props {
   question: {
-    question_type?: 'mcq' | 'matching' | 'open_ended'
+    question_type?: 'mcq' | 'matching' | 'open_ended' | 'numeric_open' | 'written_solution'
     question_text: string
     options: Record<string, string> | null
     matching_pairs: Record<string, string> | null

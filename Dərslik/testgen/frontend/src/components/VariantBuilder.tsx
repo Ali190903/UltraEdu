@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { api } from '@/lib/api'
 import QuestionCard from './QuestionCard'
 
-const subjects = [
+const subjects: { id: string; name: string; disabled?: boolean }[] = [
   { id: 'riyaziyyat', name: 'Riyaziyyat' },
   { id: 'az_dili', name: 'Azərbaycan dili' },
   { id: 'ingilis', name: 'İngilis dili' },
