@@ -43,6 +43,8 @@ postgres_data/
 *.png
 *.jpg
 *.jpeg
+# UI: Next.js public logo (tracked; exception must follow *.png)
+!Dərslik/testgen/frontend/public/logo.png
 
 # Logs
 *.log

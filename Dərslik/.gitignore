@@ -41,6 +41,7 @@ Desktop.ini
 
 # Screenshots
 *.png
+!testgen/frontend/public/logo.png
 
 # Playwright
 .playwright-mcp/

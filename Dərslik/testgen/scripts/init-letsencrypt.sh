@@ -40,15 +40,19 @@ if [ $STAGING -eq 1 ]; then
 fi
 
 echo "### Requesting Let's Encrypt certificate for $DOMAIN ..."
-docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm certbot certonly \
+# docker-compose.prod.yml-də certbot xidmətinin entrypoint-i "renew" döngüsüdür; certonly üçün birbaşa image işlədirik
+docker run --rm \
+  -v "$(pwd)/certbot/conf:/etc/letsencrypt" \
+  -v "$(pwd)/certbot/www:/var/www/certbot" \
+  certbot/certbot certonly \
   --webroot \
   --webroot-path=/var/www/certbot \
   $STAGING_FLAG \
-  --email $EMAIL \
+  --email "$EMAIL" \
   --agree-tos \
   --no-eff-email \
-  -d $DOMAIN \
-  -d www.$DOMAIN
+  -d "$DOMAIN" \
+  -d "www.$DOMAIN"
 
 echo "### Reloading nginx with real certificate ..."
 docker compose -f docker-compose.prod.yml --env-file .env.prod exec nginx nginx -s reload
