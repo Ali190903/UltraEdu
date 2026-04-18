@@ -26,7 +26,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 
 echo ""
 echo "=== Running DB migrations ==="
-docker compose -f docker-compose.prod.yml exec backend alembic upgrade head
+docker compose -f docker-compose.prod.yml --env-file .env.prod exec backend alembic upgrade head
 
 echo ""
 echo "=== Deploy complete! ==="
