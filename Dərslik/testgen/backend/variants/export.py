@@ -1,6 +1,17 @@
 import asyncio
 import html as _html
 import json
+import re as _re
+
+_SVG_SCRIPT_RE = _re.compile(r"<script[\s\S]*?</script>", _re.IGNORECASE)
+_SVG_HANDLER_RE = _re.compile(r'\s+on\w+="[^"]*"', _re.IGNORECASE)
+
+
+def _sanitize_svg(svg: str) -> str:
+    """Strip <script> blocks and inline event handlers from LLM-generated SVG."""
+    svg = _SVG_SCRIPT_RE.sub("", svg)
+    svg = _SVG_HANDLER_RE.sub("", svg)
+    return svg
 
 
 def export_json(variant_data: dict) -> bytes:
@@ -79,13 +90,25 @@ def _build_html(variant_data: dict) -> str:
     v = variant_data["variant"]
     subject_label = _SUBJECT_LABELS.get(v.subject, v.subject)
 
+    written_count = sum(
+        1 for item in variant_data["questions"]
+        if getattr(item["question"], "question_type", "") == "written_solution"
+    )
     question_blocks = []
+    written_header_shown = False
     for item in variant_data["questions"]:
         q = item["question"]
         order = item["order"]
         q_type = getattr(q, 'question_type', 'mcq') or 'mcq'
-        qtext = _esc(q.question_text)
+        # Fix missing \n bug -> HTML doesn't respect \n unless it's <br>
+        # JSON loaders might give lit \n or literal slash-n, replacing both.
+        qtext = _esc(q.question_text).replace("\\n", "<br>").replace("\n", "<br>")
         body_html = ""
+        
+        svg_html = ""
+        image_svg = getattr(q, 'image_svg', None)
+        if image_svg:
+            svg_html = f'<div class="q-svg">{_sanitize_svg(image_svg)}</div>'
 
         if q.options and q_type == 'mcq':
             rows = "".join(
@@ -99,16 +122,25 @@ def _build_html(variant_data: dict) -> str:
         elif q_type == 'written_solution':
             body_html = '<div class="answer-box written">Həlli yazın:</div>'
 
+        # Section header before the first written_solution question
+        if q_type == 'written_solution' and not written_header_shown:
+            written_header_shown = True
+            last_written = order + written_count - 1
+            header_text = f'{order} - {last_written} sayl\u0131 tap\u015f\u0131r\u0131qlar\u0131 \u201cCavab v\u0259r\u0259ql\u0259ri\u201dnd\u0259 cavabland\u0131r\u0131n.'
+            question_blocks.append(f'<div class=”section-header”>{header_text}</div>')
+
         question_blocks.append(
             f'<div class="q">'
             f'<div class="q-head"><span class="q-num">{order}.</span> '
             f'<span class="q-text">{qtext}</span></div>'
+            f'{svg_html}'
             f'{body_html}'
             f'</div>'
         )
 
     answer_items = "".join(
-        f'<li><span class="a-num">{item["order"]}.</span> '
+        f'<li class="{"a-written" if getattr(item["question"], "question_type", "") == "written_solution" else ""}">'
+        f'<span class="a-num">{item["order"]}.</span> '
         f'<span class="a-val">{_esc(item["question"].correct_answer)}</span></li>'
         for item in variant_data["questions"]
     )
@@ -144,11 +176,15 @@ def _build_html(variant_data: dict) -> str:
   .answers {{ margin-top: 28px; padding-top: 14px; border-top: 1px solid #cbd5e1; page-break-before: auto; }}
   .answers h2 {{ font-size: 13pt; margin: 0 0 10px; font-weight: 700; }}
   .answers ol {{ list-style: none; margin: 0; padding: 0; columns: 3; column-gap: 24px; }}
+  .answers li.a-written {{ column-span: all; break-inside: avoid; }}
   .answers li {{ break-inside: avoid; margin: 2px 0; font-size: 10pt; }}
   .a-num {{ color: #64748b; margin-right: 4px; }}
   .a-val {{ font-weight: 600; }}
   .answer-box {{ border: 1.5px dashed #94a3b8; border-radius: 6px; padding: 10px 14px; margin: 8px 0 0 22px; color: #64748b; font-size: 10pt; }}
   .answer-box.written {{ min-height: 100px; }}
+  .section-header {{ text-align: center; font-weight: 800; font-size: 13pt; margin: 30px 0 20px; padding-bottom: 5px; border-bottom: 2px solid #0f172a; }}
+  .q-svg {{ margin: 15px 0; text-align: center; }}
+  .q-svg svg {{ max-width: 100%; max-height: 250px; width: auto; height: auto; }}
   /* KaTeX sizing — match site */
   .katex {{ font-size: 1.05em; }}
   @page {{ size: A4; margin: 16mm 0; }}

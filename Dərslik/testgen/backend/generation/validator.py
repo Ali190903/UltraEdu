@@ -33,10 +33,10 @@ class ValidationStage:
         similar = self.qdrant.search(
             collection=DIM_TESTS_COLLECTION,
             vector=question_vector,
-            limit=1,
+            limit=3,
         )
 
-        max_similarity = similar[0]["score"] if similar else 0.0
+        max_similarity = max((s["score"] for s in similar), default=0.0)
 
         if max_similarity > self.similarity_threshold:
             return {

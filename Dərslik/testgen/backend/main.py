@@ -16,18 +16,28 @@ from models.user import User
 from models.question import Question
 from models.generation_log import GenerationLog
 
+from config import settings
+
+if not settings.jwt_secret.strip():
+    raise RuntimeError(
+        "JWT_SECRET environment variable must be set to a non-empty value. "
+        'Generate one with: python -c "import secrets; print(secrets.token_hex(32))"'
+    )
+
 app = FastAPI(title="TestGen AI", version="0.1.0")
 
 import os as _os
 
-_cors_origins = _os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+_cors_origins = [o.strip() for o in _os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",") if o.strip()]
+if not _cors_origins:
+    raise RuntimeError("CORS_ORIGINS must list at least one origin (e.g. http://localhost:3000).")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "Accept-Language", "Cookie"],
 )
 
 

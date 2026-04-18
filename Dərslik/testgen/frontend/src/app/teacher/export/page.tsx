@@ -5,22 +5,22 @@ import { api } from '@/lib/api'
 const formatInfo: Record<string, { label: string; cls: string; icon: string }> = {
   pdf: {
     label: 'PDF',
-    cls: 'bg-red-500 hover:bg-red-600',
+    cls: 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100',
     icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m.75 12l3 3m0 0l3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z',
   },
   word: {
     label: 'Word',
-    cls: 'bg-indigo-500 hover:bg-indigo-600',
+    cls: 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100',
     icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z',
   },
   json: {
     label: 'JSON',
-    cls: 'bg-blue-500 hover:bg-blue-600',
+    cls: 'bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100',
     icon: 'M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5',
   },
   text: {
     label: 'TXT',
-    cls: 'bg-accent-500 hover:bg-accent-600',
+    cls: 'bg-stone-50 text-stone-600 border border-stone-200 hover:bg-stone-100',
     icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z',
   },
 }
@@ -45,10 +45,12 @@ export default function ExportPage() {
 
   return (
     <div className="min-h-screen bg-accent-50">
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white">
-        <div className="max-w-5xl mx-auto px-6 py-8">
-          <h1 className="text-2xl font-bold">İxrac</h1>
-          <p className="text-primary-100 mt-1">Variantları müxtəlif formatlarda yükləyin</p>
+      <div className="bg-white border-b border-accent-100 shadow-sm relative z-10">
+        <div className="max-w-5xl mx-auto px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+          <div>
+            <h1 className="text-2xl font-extrabold text-accent-900 tracking-tight">İxrac</h1>
+            <p className="text-[0.95rem] text-accent-500 mt-1">Variantları müxtəlif formatlarda yükləyin</p>
+          </div>
         </div>
       </div>
 
@@ -86,7 +88,7 @@ export default function ExportPage() {
                 <button
                   key={format}
                   onClick={() => api.variants.export(v.id, format)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer ${info.cls}`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${info.cls}`}
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d={info.icon} />

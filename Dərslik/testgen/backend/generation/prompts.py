@@ -54,6 +54,19 @@ def build_generation_prompt(
             "sequences & series (numeric limits), trigonometry, geometry (triangles, circles, "
             "solids — surface area & volume by direct formulas only), probability, "
             "percentages/ratios, functions (domain/range/composition — NOT derivatives).\n"
+            "- STRICT NO PROOF RULE: Buraxılış questions MUST NOT ask the student to prove a formula or theorem ('isbat edin'). "
+            "All questions must ask for a final numerical or algebraic calculation/result.\n"
+            "- ALWAYS wrap ANY and ALL math variables, angles, degrees, numbers, and formulas inside $...$. "
+            "Never leave mathematically meaningful letters or expressions naked. Write '$\\angle BAC$' instead of '\\angle BAC'.\n"
+            "- VISUALLY INTENSIVE (SVG RULE): If the question involves geometry, coordinates, sets, or charts, "
+            "you MUST generate high-quality, professional SVG code showing the figure in the `image_svg` field. "
+            "STRICT SVG REQUIREMENTS: "
+            "1. MUST define a clear `viewBox` (e.g., viewBox=\"0 0 300 250\"). "
+            "2. Use thick, distinct black lines (stroke=\"black\" stroke-width=\"2.5\" fill=\"transparent\"). "
+            "3. Add min 15px padding inside the viewBox so shapes/lines never clip. "
+            "4. Add precise `<text>` elements for labels (A, B, r=5, 1.5m) with font-family=\"sans-serif\" font-size=\"16\" font-weight=\"bold\", nicely offset from lines. "
+            "5. Ensure paths close perfectly (use 'Z' or exact coordinates) and figures look mathematically proportional.\n"
+            "- STRICT NO HALLUCINATIONS: Do NOT write the word 'Situasiya:' or '(şəkildəki kimi)' in the question text! Also, NEVER divide a question into sub-parts like a), b), c). DİM questions are single, direct queries.\n"
             "- If the textbook context contains calculus material, IGNORE it and pick "
             "an allowed concept from the same topic.\n"
         )
@@ -84,13 +97,15 @@ def build_generation_prompt(
             "options MUST be null. matching_pairs MUST be null. rubric MUST be null."
         ),
         "written_solution": (
-            "Create a complex situation or multi-step problem that REQUIRES a detailed written solution "
-            "from the student to get full points. This simulates DIM open-ended written tasks. "
+            "Create a DIM-style open-ended written task. "
+            "It may be a single direct calculation (e.g. 'Find the volume of a sphere with radius 3') "
+            "OR a multi-step problem — both formats appear in real DIM exams. "
+            "The key requirement: the student must SHOW their work/solution steps in writing. "
             "options MUST be null. matching_pairs MUST be null. "
-            "You MUST provide a 'rubric' JSON object mapping exact points to grading criteria for: "
-            "\"1 bal\", \"2/3 bal\" (optional), \"1/2 bal\", \"1/3 bal\" (optional), and \"0 bal\". "
-            "Example: {{\"1 bal\": \"Tam doğru həll...\", \"1/2 bal\": \"Düztür... ammo səhv...\", \"0 bal\": ...}}. "
-            "The correct_answer field should still hold the final conceptual answer."
+            "You MUST provide a 'rubric' JSON object with at minimum '1 bal' and '0 bal' keys. "
+            "Optionally include '1/2 bal' for partial credit. "
+            "Example: {{\"1 bal\": \"Tam doğru həll və cavab\", \"1/2 bal\": \"Düzgün metod, hesab səhvi\", \"0 bal\": \"Səhv metod və ya boş\"}}. "
+            "The correct_answer field must hold the final numeric or algebraic answer."
         ),
     }
 
@@ -129,6 +144,7 @@ JSON ESCAPING RULES (CRITICAL — read carefully):
 Return JSON:
 {{
   "question_text": "...",
+  "image_svg": "<svg>...</svg>" or null,
   "options": {{"A": "...", "B": "...", "C": "...", "D": "...", "E": "..."}} or null,
   "matching_pairs": {{...}} or null,
   "rubric": {{"1 bal": "...", "1/2 bal": "...", "0 bal": "..."}} or null,

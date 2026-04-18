@@ -1,13 +1,10 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? ''
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...((options.headers as Record<string, string>) || {}),
   }
-  // Keep Bearer header as fallback during transition
-  if (token) headers['Authorization'] = `Bearer ${token}`
 
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -47,9 +44,7 @@ export const api = {
     list: () => request<any[]>('/api/variants'),
     get: (id: string) => request<any>(`/api/variants/${id}`),
     export: async (id: string, format: string) => {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
       const res = await fetch(`${API_URL}/api/variants/${id}/export?format=${format}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
         credentials: 'include',
       })
       if (!res.ok) {

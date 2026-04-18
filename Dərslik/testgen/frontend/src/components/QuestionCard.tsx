@@ -13,6 +13,7 @@ interface Props {
     correct_answer: string
     explanation: string
     latex_content: string | null
+    image_svg?: string | null
     source_reference: string
     bloom_level?: string
     difficulty?: string
@@ -86,6 +87,14 @@ export default function QuestionCard({ question, questionId, index }: Props) {
       <div className="text-accent-800 text-[0.9375rem] leading-relaxed font-medium">
         {renderText(question.question_text)}
       </div>
+
+      {/* Embedded Geometry/SVG Model */}
+      {question.image_svg && (
+        <div 
+          className="my-5 flex justify-center p-4 bg-white border border-accent-200 rounded-xl shadow-sm"
+          dangerouslySetInnerHTML={{ __html: question.image_svg }}
+        />
+      )}
 
       {/* MCQ options / Matching Matrix */}
       {question.options && !isMatching && (

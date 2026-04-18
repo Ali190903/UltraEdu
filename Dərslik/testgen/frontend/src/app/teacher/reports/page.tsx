@@ -37,10 +37,12 @@ export default function ReportsPage() {
 
   return (
     <div className="min-h-screen bg-accent-50">
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white">
-        <div className="max-w-5xl mx-auto px-6 py-8">
-          <h1 className="text-2xl font-bold">Hesabatlar</h1>
-          <p className="text-primary-100 mt-1">İstifadəçi şikayətlərini idarə edin və sualları düzəldin</p>
+      <div className="bg-white border-b border-accent-100 shadow-sm relative z-10">
+        <div className="max-w-5xl mx-auto px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+          <div>
+            <h1 className="text-2xl font-extrabold text-accent-900 tracking-tight">Hesabatlar</h1>
+            <p className="text-[0.95rem] text-accent-500 mt-1">İstifadəçi şikayətlərini idarə edin və sualları düzəldin</p>
+          </div>
         </div>
       </div>
 

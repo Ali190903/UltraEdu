@@ -76,45 +76,42 @@ export default function GeneratePage() {
   }
 
   return (
-    <div className="min-h-screen bg-accent-50">
-      {/* Page header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white">
-        <div className="max-w-5xl mx-auto px-6 py-8">
-          <h1 className="text-2xl font-bold">Sual Generasiyası</h1>
-          <p className="text-primary-100 mt-1">Fənni, sinifi və mövzunu seçin — AI sizin üçün unikal sual yaratsın</p>
-        </div>
+    <div className="min-h-screen bg-accent-50 pb-12">
+      {/* Page header (Seamless) */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-8 pb-6">
+        <h1 className="text-2xl font-extrabold text-accent-900 tracking-tight">Sual Generasiyası</h1>
+        <p className="text-sm text-accent-500 mt-1.5">Fənni, sinifi və mövzunu seçin — AI sizin üçün unikal sual yaratsın</p>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left: Form panel */}
           <div className="lg:col-span-1">
-            <div className="card p-6 space-y-6 sticky top-24">
+            <div className="card p-5 md:p-6 space-y-5 sticky top-6 shadow-sm border-accent-100/60">
               {/* Subject selector */}
               <div>
-                <label className="text-sm font-semibold text-accent-700 mb-2 block">Fənn</label>
+                <label className="text-xs font-semibold tracking-wide text-accent-700 uppercase mb-2 block">Fənn</label>
                 <div className="space-y-2">
                   {subjects.map((s) => (
                     <button
                       key={s.id}
                       onClick={() => {
-                        setSubject(s.id)
-                        setTopic('')
+                         if (!loading) { setSubject(s.id); setTopic('') }
                       }}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border-1.5 transition-all duration-200 cursor-pointer text-left ${
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border border-transparent transition-all duration-300 cursor-pointer text-left ${
                         subject === s.id
-                          ? 'bg-primary-50 border-primary-400 text-primary-700'
-                          : 'bg-white border-accent-200 text-accent-600 hover:border-accent-300'
+                          ? 'bg-primary-50 border-primary-200 text-primary-800 shadow-sm'
+                          : 'bg-white border-accent-200 text-accent-600 hover:border-primary-300'
                       }`}
                     >
                       <span
-                        className={`p-1.5 rounded-lg ${
+                        className={`p-1.5 rounded-lg transition-colors ${
                           subject === s.id ? 'bg-primary-100 text-primary-600' : 'bg-accent-100 text-accent-400'
                         }`}
                       >
-                        {s.icon}
+                        <div className="scale-75">{s.icon}</div>
                       </span>
-                      <span className="font-medium text-sm">{s.name}</span>
+                      <span className="font-semibold text-sm">{s.name}</span>
                     </button>
                   ))}
                 </div>
@@ -122,22 +119,21 @@ export default function GeneratePage() {
 
               {/* Grade selector */}
               <div>
-                <label className="text-sm font-semibold text-accent-700 mb-2 block">Sinif</label>
+                <label className="text-xs font-semibold tracking-wide text-accent-700 uppercase mb-2 block">Sinif</label>
                 <div className="flex gap-2">
                   {[9, 10, 11].map((g) => (
                     <button
                       key={g}
                       onClick={() => {
-                        setGrade(g)
-                        setTopic('')
+                        if (!loading) { setGrade(g); setTopic('') }
                       }}
-                      className={`flex-1 py-2.5 rounded-lg text-sm font-semibold border-1.5 transition-all duration-200 cursor-pointer ${
+                      className={`flex-1 py-1.5 px-2 rounded-lg text-sm font-bold border transition-all duration-300 cursor-pointer ${
                         grade === g
-                          ? 'bg-primary-50 border-primary-400 text-primary-700'
-                          : 'bg-white border-accent-200 text-accent-500 hover:border-accent-300'
+                          ? 'bg-primary-50 border-primary-300 text-primary-700'
+                          : 'bg-white border-accent-200 text-accent-500 hover:border-primary-300'
                       }`}
                     >
-                      {g}-cu sinif
+                      {g}-cu
                     </button>
                   ))}
                 </div>
@@ -145,27 +141,27 @@ export default function GeneratePage() {
 
               {/* Topic selector */}
               <div>
-                <label className="text-sm font-semibold text-accent-700 mb-2 block">Mövzu</label>
+                <label className="text-xs font-semibold tracking-wide text-accent-700 uppercase mb-2 block">Mövzu</label>
                 <TopicSelector subject={subject} grade={grade} value={topic} onChange={setTopic} />
               </div>
 
               {/* Difficulty */}
               <div>
-                <label className="text-sm font-semibold text-accent-700 mb-2 block">Çətinlik</label>
+                <label className="text-xs font-semibold tracking-wide text-accent-700 uppercase mb-2 block">Çətinlik</label>
                 <DifficultyPicker value={difficulty} onChange={setDifficulty} />
               </div>
 
               {/* Question type */}
               <div>
-                <label className="text-sm font-semibold text-accent-700 mb-2 block">Sual növü</label>
-                <div className="space-y-2">
+                <label className="text-xs font-semibold tracking-wide text-accent-700 uppercase mb-2 block">Sual növü</label>
+                <div className="space-y-1.5">
                   {questionTypes.map((qt) => (
                     <button
                       key={qt.id}
                       onClick={() => setQuestionType(qt.id)}
-                      className={`w-full text-left px-4 py-2.5 rounded-lg border-1.5 transition-all duration-200 cursor-pointer ${
+                      className={`w-full text-left px-3 py-2 rounded-lg border transition-all duration-200 cursor-pointer ${
                         questionType === qt.id
-                          ? 'bg-primary-50 border-primary-400'
+                          ? 'bg-primary-50 border-primary-300'
                           : 'bg-white border-accent-200 hover:border-accent-300'
                       }`}
                     >
@@ -174,7 +170,7 @@ export default function GeneratePage() {
                       >
                         {qt.name}
                       </span>
-                      <span className="text-xs text-accent-400 block mt-0.5">{qt.desc}</span>
+                      <span className="text-[11px] text-accent-400 block">{qt.desc}</span>
                     </button>
                   ))}
                 </div>
@@ -194,7 +190,7 @@ export default function GeneratePage() {
               <button
                 onClick={generate}
                 disabled={loading}
-                className="btn-primary w-full py-3.5 text-center flex items-center justify-center gap-2 cursor-pointer"
+                className="btn-primary w-full py-2.5 text-sm text-center flex items-center justify-center gap-2 cursor-pointer mt-2"
               >
                 {loading ? (
                   <>

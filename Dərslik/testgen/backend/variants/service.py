@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.variant import Variant, VariantQuestion
 from models.question import Question
+from models.generation_log import GenerationLog
 from generation.pipeline import GenerationPipeline
 from core.qdrant_client import QdrantWrapper, DIM_TESTS_COLLECTION
 from data_pipeline.dim_blocks import DIM_MATH_BLOCKS
@@ -175,10 +176,9 @@ async def create_variant(
 
     random.shuffle(topics_expanded)
     random.shuffle(difficulties_expanded)
-    random.shuffle(types_expanded)
-    random.shuffle(grades_expanded)
-    
-    tasks: list[tuple[str, str, str, int]] = list(zip(topics_expanded, difficulties_expanded, types_expanded, grades_expanded))
+    # random.shuffle(types_expanded) -> DO NOT SHUFFLE types! We must keep the strict DİM order.
+    # Map task index to preserve exact structural order (e.g., MCQ first, Written last)
+    tasks_with_idx = list(enumerate(zip(topics_expanded, difficulties_expanded, types_expanded, grades_expanded)))
 
     # Generate questions (5 concurrent)
     semaphore = asyncio.Semaphore(5)
@@ -193,22 +193,23 @@ async def create_variant(
                 question_type=q_type,
             )
 
-    async def run_batch(batch_tasks: list[tuple[str, str, str, int]]):
+    async def run_batch(batch_tasks):
         return await asyncio.gather(
-            *[gen_one(t, d, qt, g) for t, d, qt, g in batch_tasks],
+            *[gen_one(t, d, qt, g) for idx, (t, d, qt, g) in batch_tasks],
             return_exceptions=True,
         )
 
     # Round 1: full batch
-    results = await run_batch(tasks)
-    successful: list[tuple[tuple[str, str, str, int], dict]] = []
-    failed_tasks: list[tuple[str, str, str, int]] = []
+    results = await run_batch(tasks_with_idx)
+    successful = []
+    failed_tasks = []
     
     for i, r in enumerate(results):
+        idx, task_info = tasks_with_idx[i]
         if not isinstance(r, Exception) and r["validation"]["passed"]:
-            successful.append((tasks[i], r))
+            successful.append((idx, task_info, r))
         else:
-            failed_tasks.append(tasks[i])
+            failed_tasks.append((idx, task_info))
 
     # Refill rounds for failed slots — keep firing until we hit target or exhaust rounds
     refill_round = 0
@@ -216,10 +217,11 @@ async def create_variant(
     
     while len(successful) < target_total and refill_round < REFILL_ROUNDS:
         refill_round += 1
-        refill_tasks: list[tuple[str, str, str, int]] = []
-        for _, _, q_type, _ in failed_tasks:
+        refill_tasks = []
+        for idx, (_, orig_difficulty, q_type, _) in failed_tasks:
+            # Keep original difficulty; only randomise topic and grade
             refill_tasks.append(
-                (random.choice(topic_pool), random.choice(difficulties_expanded), q_type, random.choice(grade))
+                (idx, (random.choice(topic_pool), orig_difficulty, q_type, random.choice(grade)))
             )
             
         logger.info(
@@ -231,12 +233,13 @@ async def create_variant(
         # Reset failed tasks for the next possible round
         next_failed_tasks = []
         for i, r in enumerate(refill_results):
+            idx, task_info = refill_tasks[i]
             if not isinstance(r, Exception) and r["validation"]["passed"]:
-                successful.append((refill_tasks[i], r))
+                successful.append((idx, task_info, r))
                 if len(successful) >= target_total:
                     break
             else:
-                next_failed_tasks.append(refill_tasks[i])
+                next_failed_tasks.append((idx, task_info))
                 
         failed_tasks = next_failed_tasks
 
@@ -250,7 +253,10 @@ async def create_variant(
         title, target_total, len(successful), failed_val_count, exc_count, refill_round,
     )
 
-    for order, ((topic, difficulty, q_type, g), result) in enumerate(successful, start=1):
+    # Sort successful by original index to guarantee DİM 1-25 order
+    successful.sort(key=lambda x: x[0])
+
+    for order, (idx, (topic, difficulty, q_type, g), result) in enumerate(successful, start=1):
         q = result["question"]
         question = Question(
             subject=subject,
@@ -265,6 +271,7 @@ async def create_variant(
             correct_answer=q["correct_answer"],
             explanation=q["explanation"],
             latex_content=q.get("latex_content"),
+            image_svg=q.get("image_svg"),
             source_reference=q["source_reference"],
             similarity_score=result["validation"].get("similarity_score", 0.0),
             validation_result=result["validation"],
@@ -272,6 +279,22 @@ async def create_variant(
         )
         db.add(question)
         await db.flush()
+
+        timing = result.get("timing", {})
+        log = GenerationLog(
+            user_id=user_id,
+            question_id=question.id,
+            subject=subject,
+            topic=topic,
+            difficulty=difficulty,
+            retrieval_time=timing.get("retrieval", 0.0),
+            generation_time=timing.get("generation", 0.0),
+            validation_time=timing.get("validation", 0.0),
+            total_time=timing.get("total", 0.0),
+            attempts=result.get("attempts", 1),
+            success=True,
+        )
+        db.add(log)
 
         vq = VariantQuestion(variant_id=variant.id, question_id=question.id, order_number=order)
         db.add(vq)

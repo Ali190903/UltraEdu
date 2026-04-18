@@ -26,7 +26,7 @@ const subjectLabels: Record<string, string> = {
 
 function formatDate(iso: string) {
   const d = new Date(iso)
-  return d.toLocaleDateString('az-AZ', { day: '2-digit', month: 'short', year: 'numeric' })
+  return new Intl.DateTimeFormat('az-Latn-AZ', { day: 'numeric', month: 'long', year: 'numeric' }).format(d)
 }
 
 export default function TeacherDashboard() {
@@ -44,28 +44,28 @@ export default function TeacherDashboard() {
   return (
     <div className="min-h-screen bg-accent-50">
       {/* Compact hero */}
-      <div className="bg-white border-b border-accent-100">
-        <div className="max-w-5xl mx-auto px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="bg-white border-b border-accent-100 shadow-sm relative z-10">
+        <div className="max-w-5xl mx-auto px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
           <div>
-            <h1 className="text-xl font-bold text-accent-900">Müəllim Paneli</h1>
-            <p className="text-sm text-accent-500 mt-0.5">Sualları idarə edin və variantlar yaradın</p>
+            <h1 className="text-2xl font-extrabold text-accent-900 tracking-tight">Müəllim Paneli</h1>
+            <p className="text-[0.95rem] text-accent-500 mt-1">Sualları idarə edin və variantlar yaradın</p>
           </div>
           <Link
             href="/teacher/generate"
-            className="btn-primary !py-2.5 !px-5 text-sm inline-flex items-center justify-center gap-2 shrink-0 w-full sm:w-auto"
+            className="btn-primary !py-2.5 !px-5 text-[0.95rem] inline-flex items-center justify-center gap-2 shrink-0 w-full sm:w-auto shadow-md"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
-            Yeni Variant
+            Yeni Variant Yarat
           </Link>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+      <div className="max-w-5xl mx-auto px-6 py-10 space-y-12">
         {/* Stats */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative z-0">
             <StatCard
               color="primary"
               label="Sual bankı"

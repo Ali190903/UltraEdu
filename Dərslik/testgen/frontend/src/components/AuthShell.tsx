@@ -5,8 +5,8 @@ import type { ReactNode } from 'react'
 
 const features = [
   {
-    title: 'DIM formatında AI generasiyası',
-    desc: 'Real imtahan sualları saniyələr içində — Azərbaycan dili, Riyaziyyat, İngilis dili.',
+    title: 'DİM formatında AI generasiyası',
+    desc: 'Real suallar saniyələr içində — Azərbaycan dili, Riyaziyyat, İngilis dili.',
     icon: (
       <path
         strokeLinecap="round"
@@ -17,7 +17,7 @@ const features = [
   },
   {
     title: 'Çətinlik səviyyəsinə nəzarət',
-    desc: 'Asan, orta və çətin paylanması ilə hər variant sizin sinifə uyğunlaşır.',
+    desc: 'Asan, orta və çətin sual paylanması avtomatlaşdırılmış idarə olunur.',
     icon: (
       <path
         strokeLinecap="round"
@@ -27,8 +27,8 @@ const features = [
     ),
   },
   {
-    title: 'PDF, Word və JSON ixracı',
-    desc: 'Hazır variantları bir kliklə yüklə, sinfə paylama üçün optimal.',
+    title: 'PDF və Word ixracı',
+    desc: 'Hazır sınaqları bir kliklə yükləyərək çap edə bilərsiniz.',
     icon: (
       <path
         strokeLinecap="round"
@@ -51,91 +51,97 @@ export default function AuthShell({
   footer: ReactNode
 }) {
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-2">
-      {/* Left brand panel — desktop only */}
-      <aside className="hidden lg:flex relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 text-white">
-        {/* Decorative blobs */}
-        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-primary-400/20 blur-3xl" />
-        <div className="absolute bottom-0 right-0 w-[28rem] h-[28rem] rounded-full bg-primary-300/10 blur-3xl" />
-        <div
-          className="absolute inset-0 opacity-[0.07]"
-          style={{
-            backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath fill='%23ffffff' fill-opacity='1' d='M0 0h1v1H0zm20 20h1v1h-1z'/%3E%3C/svg%3E\")",
-          }}
-        />
+    <div className="min-h-screen bg-white lg:grid lg:grid-cols-2">
+      {/* Left panel: Compact Academic SaaS Aesthetic - STICKY so it never has empty scroll voids */}
+      <aside className="hidden lg:flex flex-col relative bg-accent-50/50 border-r border-accent-200/60 p-8 xl:p-12 h-screen sticky top-0 overflow-hidden">
+        
+        {/* Blurs */}
+        <div className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-emerald-100/40 rounded-full blur-[80px] pointer-events-none -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-[20rem] h-[20rem] bg-emerald-200/20 rounded-full blur-[60px] pointer-events-none translate-y-1/3 -translate-x-1/4" />
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-[0.03] pointer-events-none"></div>
 
-        <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 w-full">
-          <Link href="/" className="inline-flex items-center gap-2.5 w-fit group">
-            <div className="rounded-xl bg-white/10 backdrop-blur-sm p-1.5 ring-1 ring-white/20 group-hover:bg-white/15 transition-colors">
-              <Image src="/logo.png" alt="UltraEdu" width={32} height={32} />
+        {/* Content wrapper */}
+        <div className="relative z-10 w-full max-w-sm mx-auto flex flex-col h-full justify-between">
+          
+          <div className="flex-1 flex flex-col justify-center">
+            <Link href="/" className="inline-flex items-center gap-2 w-fit group mb-10">
+              <div className="rounded-lg bg-white p-1.5 shadow-sm ring-1 ring-accent-200 group-hover:shadow group-hover:ring-emerald-200 transition-all">
+                <Image src="/logo.png" alt="UltraEdu" width={28} height={28} className="opacity-90" />
+              </div>
+              <span className="text-lg font-bold tracking-tight">
+                <span className="text-accent-900">Ultra</span>
+                <span className="text-emerald-600">Edu</span>
+              </span>
+            </Link>
+
+            <div className="space-y-3">
+              <h2 className="font-display text-3xl xl:text-4xl leading-[1.1] font-bold tracking-tight text-accent-900">
+                DİM imtahanlarına <br/> AI ilə hazırlaşın
+              </h2>
+              <p className="text-accent-600 text-[0.9rem] xl:text-[0.95rem] leading-relaxed max-w-sm">
+                Abituriyentlər və müəllimlər üçün sürətli və qüsursuz variant generasiyası sistemi.
+              </p>
             </div>
-            <span className="text-xl font-bold tracking-tight">
-              <span className="text-white">Ultra</span>
-              <span className="text-primary-100">Edu</span>
-            </span>
-          </Link>
-
-          <div className="max-w-md">
-            <h2 className="font-display text-4xl xl:text-[2.75rem] leading-[1.1] font-bold tracking-tight">
-              DIM imtahanlarına AI ilə hazırlaşın
-            </h2>
-            <p className="mt-4 text-primary-50/90 text-base leading-relaxed">
-              UltraEdu müəllimlərə və abituriyentlərə keyfiyyətli sual variantları yaratmağa və paylaşmağa kömək edir.
-            </p>
 
             <ul className="mt-10 space-y-5">
               {features.map((f) => (
-                <li key={f.title} className="flex gap-4">
-                  <div className="shrink-0 w-10 h-10 rounded-lg bg-white/10 ring-1 ring-white/20 flex items-center justify-center">
+                <li key={f.title} className="flex gap-4 group">
+                  <div className="shrink-0 w-11 h-11 rounded-lg bg-white shadow-sm ring-1 ring-accent-200 flex items-center justify-center group-hover:ring-emerald-300 group-hover:bg-emerald-50 transition-all duration-300">
                     <svg
-                      className="w-5 h-5 text-white"
+                      className="w-5 h-5 text-emerald-600"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
-                      strokeWidth={1.75}
+                      strokeWidth={2}
                     >
                       {f.icon}
                     </svg>
                   </div>
                   <div>
-                    <p className="font-semibold text-white text-[0.95rem]">{f.title}</p>
-                    <p className="text-sm text-primary-50/80 mt-0.5 leading-relaxed">{f.desc}</p>
+                    <h3 className="font-bold text-accent-900 text-[0.85rem] xl:text-[0.9rem] tracking-tight">{f.title}</h3>
+                    <p className="text-accent-500 text-[0.8rem] xl:text-[0.85rem] mt-0.5 leading-relaxed">{f.desc}</p>
                   </div>
                 </li>
               ))}
             </ul>
           </div>
-
-          <p className="text-xs text-primary-100/70">© {new Date().getFullYear()} UltraEdu. Bütün hüquqlar qorunur.</p>
+          
+          <div className="text-[10px] xl:text-[11px] font-medium text-accent-400 uppercase tracking-widest pt-8 pb-2">
+            © {new Date().getFullYear()} ULTRAEDU INC.
+          </div>
         </div>
       </aside>
 
-      {/* Right form panel */}
-      <section className="flex items-center justify-center px-4 sm:px-6 py-10 lg:py-12 bg-accent-50">
-        <div className="w-full max-w-md">
+      {/* Right form panel - Scrolls naturally if needed */}
+      <section className="relative flex flex-col items-center justify-center p-6 xl:p-12 bg-white min-h-screen">
+        <div className="w-full max-w-[360px] xl:max-w-[380px] relative z-10 mx-auto flex flex-col justify-center py-8">
+          
           {/* Mobile logo header */}
-          <div className="lg:hidden text-center mb-6">
+          <div className="lg:hidden text-center mb-8 flex flex-col items-center">
             <Link href="/" className="inline-flex items-center gap-2">
-              <Image src="/logo.png" alt="UltraEdu" width={36} height={36} />
+              <Image src="/logo.png" alt="UltraEdu" width={32} height={32} />
               <span className="text-xl font-bold tracking-tight">
-                <span className="text-accent-800">Ultra</span>
-                <span className="text-primary-600">Edu</span>
+                <span className="text-accent-900">Ultra</span>
+                <span className="text-emerald-600">Edu</span>
               </span>
             </Link>
           </div>
 
-          <div className="card p-7 sm:p-8">
-            <div className="mb-7">
-              <h1 className="font-display text-2xl sm:text-[1.75rem] font-bold text-accent-900 leading-tight">
+          <div className="w-full">
+            <div className="mb-8 text-center lg:text-left">
+              <h1 className="font-display text-2xl xl:text-3xl font-bold text-accent-900 leading-tight tracking-tight">
                 {title}
               </h1>
-              <p className="text-accent-500 text-sm mt-1.5">{subtitle}</p>
+              <p className="text-accent-500 font-medium text-[0.85rem] xl:text-sm mt-2">{subtitle}</p>
             </div>
 
-            {children}
+            <div className="bg-transparent">
+              {children}
+            </div>
 
-            <div className="mt-6 text-center text-sm text-accent-500">{footer}</div>
+            <div className="mt-8 text-center text-[0.85rem] font-medium text-accent-500">
+              {footer}
+            </div>
           </div>
         </div>
       </section>

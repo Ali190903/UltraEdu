@@ -18,6 +18,7 @@ class QuestionResponse(BaseModel):
     correct_answer: str
     explanation: str
     latex_content: str | None
+    image_svg: str | None = None
     source_reference: str
     status: str
     created_at: datetime

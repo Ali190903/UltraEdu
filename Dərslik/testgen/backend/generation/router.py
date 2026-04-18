@@ -29,10 +29,11 @@ async def generate_question(
         question_type=req.question_type,
     )
 
-    # Save question to DB regardless of validation result (return with warning if failed)
+    validation_passed = result["validation"].get("passed", False)
     q = result["question"]
     q["question_type"] = req.question_type
     question = Question(
+        status="active" if validation_passed else "pending_review",
         subject=req.subject,
         grade=req.grade,
         topic=req.topic,
@@ -53,7 +54,6 @@ async def generate_question(
     db.add(question)
     await db.flush()
 
-    validation_passed = result["validation"].get("passed", False)
     log = GenerationLog(
         user_id=user.id,
         question_id=question.id,

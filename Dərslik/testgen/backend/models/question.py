@@ -21,6 +21,7 @@ class Question(Base):
     bloom_level: Mapped[str] = mapped_column(String(30), nullable=False)
     question_text: Mapped[str] = mapped_column(Text, nullable=False)
     question_image: Mapped[str | None] = mapped_column(Text, nullable=True)
+    image_svg: Mapped[str | None] = mapped_column(Text, nullable=True)
     options: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     matching_pairs: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     rubric: Mapped[dict | None] = mapped_column(JSONB, nullable=True)

@@ -28,8 +28,6 @@ DIM_MATH_BLOCKS = {
             "Bərabərsizliklər və bərabərsizliklər sistemi",
             "Triqonometrik tənliklər",
             "Üstlü, loqarifmik tənliklər və bərabərsizliklər",
-            "Situasiya",
-            "Situasiya məsələləri",
         ],
         "target_count": 6,
     },
@@ -78,3 +76,5 @@ DIM_MATH_BLOCKS = {
 # - "İsbat məsələləri" (53 pts) — meta-category, not a real topic
 # - "İmtahan sualları (2025)" (48 pts) — meta-category
 # - "Qəbul imtahanı sualları" (30 pts) — qəbul, not buraxılış
+# - "Situasiya" / "Situasiya məsələləri" — not a topic; a question format label.
+#   Including these caused RAG to pull "Situasiya:"-prefixed examples → LLM mimicked the prefix.

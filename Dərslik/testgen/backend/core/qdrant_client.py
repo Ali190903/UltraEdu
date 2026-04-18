@@ -25,16 +25,28 @@ class QdrantWrapper:
         collection: str,
         vector: list[float],
         filters: dict | None = None,
+        exclude_values: dict | None = None,
         limit: int = 5,
     ) -> list[dict]:
         query_filter = None
+        must_conditions = []
+        must_not_conditions = []
         if filters:
-            must_conditions = []
             for key, value in filters.items():
                 must_conditions.append(
                     models.FieldCondition(key=key, match=models.MatchValue(value=value))
                 )
-            query_filter = models.Filter(must=must_conditions)
+        if exclude_values:
+            for key, values in exclude_values.items():
+                for value in values:
+                    must_not_conditions.append(
+                        models.FieldCondition(key=key, match=models.MatchValue(value=value))
+                    )
+        if must_conditions or must_not_conditions:
+            query_filter = models.Filter(
+                must=must_conditions or None,
+                must_not=must_not_conditions or None,
+            )
 
         results = self.client.query_points(
             collection_name=collection,

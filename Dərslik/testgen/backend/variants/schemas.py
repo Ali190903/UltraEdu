@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 
 class VariantCreateRequest(BaseModel):
@@ -17,6 +17,16 @@ class VariantCreateRequest(BaseModel):
         if isinstance(v, int):
             return [v]
         return v
+
+    @model_validator(mode="after")
+    def _check_difficulty_sum(self):
+        dist_sum = sum(self.difficulty_dist.values())
+        if dist_sum != self.total_questions:
+            raise ValueError(
+                f"difficulty_dist values must sum to total_questions "
+                f"({dist_sum} != {self.total_questions})"
+            )
+        return self
 
 
 class VariantResponse(BaseModel):

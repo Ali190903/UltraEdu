@@ -1,3 +1,8 @@
+import os
+
+# main.py tələb edir; real .env olmadan pytest üçün sabit dəyər
+os.environ.setdefault("JWT_SECRET", "pytest-jwt-secret-key-min-32-chars!!")
+
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine

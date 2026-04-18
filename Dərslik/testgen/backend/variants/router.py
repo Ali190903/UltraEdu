@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import settings
 from core.database import get_db
 from core.clients import get_pipeline, get_qdrant
 from auth.security import get_current_user
@@ -60,6 +59,8 @@ async def get_one(
     data = await get_variant_with_questions(db, variant_id)
     if not data:
         raise HTTPException(status_code=404, detail="Variant not found")
+    if str(data["variant"].created_by) != str(user.id):
+        raise HTTPException(status_code=403, detail="Access denied")
 
     variant = data["variant"]
     return {
@@ -81,6 +82,7 @@ async def get_one(
                     "correct_answer": item["question"].correct_answer,
                     "explanation": item["question"].explanation,
                     "latex_content": item["question"].latex_content,
+                    "image_svg": item["question"].image_svg,
                     "source_reference": item["question"].source_reference,
                     "bloom_level": item["question"].bloom_level,
                     "question_type": item["question"].question_type,
@@ -104,6 +106,8 @@ async def export(
     data = await get_variant_with_questions(db, variant_id)
     if not data:
         raise HTTPException(status_code=404, detail="Variant not found")
+    if str(data["variant"].created_by) != str(user.id):
+        raise HTTPException(status_code=403, detail="Access denied")
 
     if format == "json":
         content = export_json(data)

@@ -28,20 +28,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(!getSavedUser())
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      setUser(null)
-      localStorage.removeItem('user')
-      setLoading(false)
-      return
-    }
     api.auth.me()
       .then((me) => {
         localStorage.setItem('user', JSON.stringify(me))
         setUser(me)
       })
       .catch(() => {
-        localStorage.removeItem('token')
         localStorage.removeItem('user')
         setUser(null)
       })
@@ -49,8 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const login = useCallback(async (email: string, password: string) => {
-    const { access_token } = await api.auth.login({ email, password })
-    localStorage.setItem('token', access_token)
+    await api.auth.login({ email, password })
     const me = await api.auth.me()
     localStorage.setItem('user', JSON.stringify(me))
     setUser(me)
@@ -59,7 +50,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(() => {
     api.auth.logout().catch(() => {})  // Clear httpOnly cookie
-    localStorage.removeItem('token')
     localStorage.removeItem('user')
     setUser(null)
     window.location.href = '/' // Logout edəndə ana səhifəyə göndərsin

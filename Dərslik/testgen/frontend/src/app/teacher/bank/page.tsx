@@ -71,11 +71,11 @@ export default function QuestionBankPage() {
   return (
     <div className="min-h-screen bg-accent-50">
       {/* Compact hero matching dashboard */}
-      <div className="bg-white border-b border-accent-100">
-        <div className="max-w-6xl mx-auto px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="bg-white border-b border-accent-100 shadow-sm relative z-10">
+        <div className="max-w-5xl mx-auto px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
           <div>
-            <h1 className="text-xl font-bold text-accent-900">Sual Bankı</h1>
-            <p className="text-sm text-accent-500 mt-0.5">
+            <h1 className="text-2xl font-extrabold text-accent-900 tracking-tight">Sual Bankı</h1>
+            <p className="text-[0.95rem] text-accent-500 mt-1">
               Yaradılmış bütün sualları idarə edin — {total} sual
             </p>
           </div>
@@ -172,6 +172,7 @@ export default function QuestionBankPage() {
                         correct_answer: q.correct_answer,
                         explanation: q.explanation,
                         latex_content: q.latex_content || null,
+                        image_svg: (q as any).image_svg || null,
                         source_reference: q.source_reference,
                         bloom_level: q.bloom_level,
                         difficulty: q.difficulty,

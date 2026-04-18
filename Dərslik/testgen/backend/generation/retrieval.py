@@ -27,10 +27,24 @@ class RetrievalStage:
             limit=textbook_limit,
         )
 
+        # Buraxılış riyaziyyat: calculus and format-label topics indexed from older
+        # DIM data must not appear as examples — they would contaminate LLM output.
+        dim_exclude = None
+        if subject == "riyaziyyat":
+            dim_exclude = {
+                "topic": [
+                    "İbtidai funksiya və inteqral",
+                    "Törəmə və tətbiqləri",
+                    "Situasiya",
+                    "Situasiya məsələləri",
+                ]
+            }
+
         dim_examples = self.qdrant.search(
             collection=DIM_TESTS_COLLECTION,
             vector=query_vector,
             filters={"subject": subject, "needs_review": False},
+            exclude_values=dim_exclude,
             limit=dim_limit,
         )
 

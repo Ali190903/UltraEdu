@@ -1,5 +1,3 @@
-import secrets
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,10 +8,11 @@ class Settings(BaseSettings):
     database_url_sync: str = "postgresql://testgen:testgen@db:5432/testgen"
     qdrant_url: str = "http://qdrant:6333"
     gemini_api_key: str = ""
-    # Əgər ENV-də verilməsə, hər restartda avtomatik 256-bitli (64 xarakter) təhlükəsiz açar yaradacaq.
-    jwt_secret: str = Field(default_factory=lambda: secrets.token_hex(32))
+    # Məhsulda hər proses/worker eyni dəyəri oxumalıdır; boş qalsa main.py RuntimeError atır.
+    jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 1440
+    cookie_secure: bool = False  # Set True in production (.env: COOKIE_SECURE=true)
     google_client_id: str = ""
     google_client_secret: str = ""
     similarity_threshold: float = 0.88
