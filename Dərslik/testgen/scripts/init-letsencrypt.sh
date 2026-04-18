@@ -30,8 +30,8 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d nginx
 echo "### Waiting for nginx to be ready ..."
 sleep 5
 
-echo "### Removing temporary certificate ..."
-rm -rf "./certbot/conf/live/$DOMAIN"
+# Köhnə skript burada temp sertifikatı silirdi; LE uğursuz olanda nginx restart zamanı fullchain yox olur.
+# Certbot özü live/$DOMAIN altında real sertifikatı yazar — əvvəlki self-signed əvəzlənir.
 
 STAGING_FLAG=""
 if [ $STAGING -eq 1 ]; then
