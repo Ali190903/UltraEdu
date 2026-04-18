@@ -90,9 +90,9 @@ export default function QuestionCard({ question, questionId, index }: Props) {
 
       {/* Embedded Geometry/SVG Model */}
       {question.image_svg && (
-        <div 
+        <div
           className="my-5 flex justify-center p-4 bg-white border border-accent-200 rounded-xl shadow-sm"
-          dangerouslySetInnerHTML={{ __html: question.image_svg }}
+          dangerouslySetInnerHTML={{ __html: question.image_svg.replace(/\$([^$]+)\$/g, '$1') }}
         />
       )}
 

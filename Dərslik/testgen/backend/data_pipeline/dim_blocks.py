@@ -46,12 +46,11 @@ DIM_MATH_BLOCKS = {
         ],
         "target_count": 6,
     },
-    "Ardıcıllıqlar_və_Limit": {
+    "Ardıcıllıqlar": {
         "topics": [
             "Ədədi ardıcıllıqlar. Silsilələr",
-            "Ədədi ardıcıllığın limiti. Funksiyanın limiti",
         ],
-        "target_count": 3,
+        "target_count": 2,
     },
     "Ehtimal_və_Statistika": {
         "topics": [
@@ -71,10 +70,11 @@ DIM_MATH_BLOCKS = {
 }
 
 # Topics in Qdrant that are intentionally EXCLUDED from block distribution:
-# - "İbtidai funksiya və inteqral" (40 pts) — calculus, out of buraxılış scope
-# - "Törəmə və tətbiqləri" (24 pts) — calculus, out of buraxılış scope
-# - "İsbat məsələləri" (53 pts) — meta-category, not a real topic
-# - "İmtahan sualları (2025)" (48 pts) — meta-category
-# - "Qəbul imtahanı sualları" (30 pts) — qəbul, not buraxılış
-# - "Situasiya" / "Situasiya məsələləri" — not a topic; a question format label.
-#   Including these caused RAG to pull "Situasiya:"-prefixed examples → LLM mimicked the prefix.
+# - "İbtidai funksiya və inteqral" — calculus, rəsmi olaraq buraxılışdan çıxarılıb
+# - "Törəmə və tətbiqləri" — rəsmi olaraq buraxılışdan çıxarılıb (mart sonrasına düşür)
+# - "Ədədi ardıcıllığın limiti. Funksiyanın limiti" — "Funksiyanın limiti" rəsmi olaraq çıxarılıb
+# - "Triqonometrik bərabərsizliklər" — dərslikdən silinib, buraxılışdan çıxarılıb
+# - "İsbat məsələləri" — meta-category, not a real topic
+# - "İmtahan sualları (2025)" — meta-category
+# - "Qəbul imtahanı sualları" — qəbul, not buraxılış
+# - "Situasiya" / "Situasiya məsələləri" — question format label, not a topic
