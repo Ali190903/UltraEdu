@@ -7,6 +7,9 @@ RUN npm ci
 
 COPY . .
 
+# Next.js bəzən public/ olmadan build edir; runner mərhələsində COPY üçün boş qovluq lazımdır
+RUN mkdir -p public
+
 ARG NEXT_PUBLIC_API_URL=""
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
