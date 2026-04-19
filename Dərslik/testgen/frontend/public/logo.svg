@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#15803d"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="32" height="32" rx="7" ry="7" fill="url(#bg)"/>
+  <!-- Document body -->
+  <rect x="7" y="5" width="15" height="18" rx="2" ry="2" fill="white"/>
+  <!-- Folded corner overlay -->
+  <path d="M18 5 L22 9 L18 9 Z" fill="#16a34a"/>
+  <!-- Document fold crease -->
+  <path d="M18 5 L18 9 L22 9" fill="none" stroke="#dcfce7" stroke-width="0.8"/>
+  <!-- Test question lines -->
+  <rect x="9.5" y="12" width="8" height="1.5" rx="0.75" fill="#bbf7d0"/>
+  <rect x="9.5" y="15" width="8" height="1.5" rx="0.75" fill="#bbf7d0"/>
+  <rect x="9.5" y="18" width="5.5" height="1.5" rx="0.75" fill="#bbf7d0"/>
+  <!-- Check badge -->
+  <circle cx="22" cy="24" r="5.5" fill="#0f172a"/>
+  <circle cx="22" cy="24" r="4.5" fill="#16a34a"/>
+  <polyline points="20,24 21.5,25.5 24,22.5"
+    fill="none" stroke="white" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

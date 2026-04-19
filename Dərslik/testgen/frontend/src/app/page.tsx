@@ -160,7 +160,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2.5">
-              <Image src="/logo.png" alt="UltraEdu" width={28} height={28} />
+              <Image src="/logo.svg" alt="UltraEdu" width={28} height={28} />
               <span className="text-white font-bold">UltraEdu</span>
             </div>
             <p className="text-sm">

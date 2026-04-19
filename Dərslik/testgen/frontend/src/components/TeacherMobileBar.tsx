@@ -36,7 +36,7 @@ export default function TeacherMobileBar() {
     <header className="lg:hidden sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-accent-100">
       <div className="flex items-center justify-between h-14 px-4">
         <Link href="/teacher/dashboard" className="flex items-center gap-2">
-          <Image src="/logo.png" alt="UltraEdu" width={28} height={28} />
+          <Image src="/logo.svg" alt="UltraEdu" width={28} height={28} />
           <span className="text-base font-bold tracking-tight">
             <span className="text-accent-800">Ultra</span>
             <span className="text-primary-600">Edu</span>

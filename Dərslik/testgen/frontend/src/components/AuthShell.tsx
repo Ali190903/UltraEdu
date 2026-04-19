@@ -66,7 +66,7 @@ export default function AuthShell({
           <div className="flex-1 flex flex-col justify-center">
             <Link href="/" className="inline-flex items-center gap-2 w-fit group mb-10">
               <div className="rounded-lg bg-white p-1.5 shadow-sm ring-1 ring-accent-200 group-hover:shadow group-hover:ring-emerald-200 transition-all">
-                <Image src="/logo.png" alt="UltraEdu" width={28} height={28} className="opacity-90" />
+                <Image src="/logo.svg" alt="UltraEdu" width={28} height={28} className="opacity-90" />
               </div>
               <span className="text-lg font-bold tracking-tight">
                 <span className="text-accent-900">Ultra</span>
@@ -119,7 +119,7 @@ export default function AuthShell({
           {/* Mobile logo header */}
           <div className="lg:hidden text-center mb-8 flex flex-col items-center">
             <Link href="/" className="inline-flex items-center gap-2">
-              <Image src="/logo.png" alt="UltraEdu" width={32} height={32} />
+              <Image src="/logo.svg" alt="UltraEdu" width={32} height={32} />
               <span className="text-xl font-bold tracking-tight">
                 <span className="text-accent-900">Ultra</span>
                 <span className="text-emerald-600">Edu</span>

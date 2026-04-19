@@ -72,7 +72,7 @@ export default function TeacherSidebar() {
     <aside className="hidden lg:flex flex-col w-60 shrink-0 sticky top-0 self-start h-screen border-r border-accent-100 bg-white/80 backdrop-blur">
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2.5 px-5 h-16 border-b border-accent-100 shrink-0">
-        <Image src="/logo.png" alt="UltraEdu" width={32} height={32} />
+        <Image src="/logo.svg" alt="UltraEdu" width={32} height={32} />
         <span className="text-lg font-bold tracking-tight">
           <span className="text-accent-800">Ultra</span>
           <span className="text-primary-600">Edu</span>

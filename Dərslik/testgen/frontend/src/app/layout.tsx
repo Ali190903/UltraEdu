@@ -6,7 +6,7 @@ import '@/styles/globals.css'
 export const metadata: Metadata = {
   title: 'UltraEdu — AI Test Generasiyası',
   description: 'DIM imtahan suallarının süni intellekt ilə avtomatik generasiyası sistemi',
-  icons: { icon: '/logo.png' },
+  icons: { icon: '/logo.svg' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
