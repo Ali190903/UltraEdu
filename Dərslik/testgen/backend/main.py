@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,7 +24,23 @@ if not settings.jwt_secret.strip():
         'Generate one with: python -c "import secrets; print(secrets.token_hex(32))"'
     )
 
-app = FastAPI(title="TestGen AI", version="0.1.0")
+# redirect_slashes=False + middleware: behind an HTTPS reverse proxy, FastAPI's
+# default 307 redirect for trailing slashes emits a Location pointing to the
+# internal http://localhost:8000 URL, which the browser cannot follow from the
+# public origin. Instead we silently normalise the path before routing.
+app = FastAPI(title="TestGen AI", version="0.1.0", redirect_slashes=False)
+
+
+@app.middleware("http")
+async def strip_trailing_slash(request: Request, call_next):
+    path = request.scope.get("path", "")
+    if len(path) > 1 and path.endswith("/"):
+        request.scope["path"] = path.rstrip("/")
+        raw = request.scope.get("raw_path")
+        if raw:
+            request.scope["raw_path"] = raw.rstrip(b"/")
+    return await call_next(request)
+
 
 import os as _os
 
