@@ -272,7 +272,7 @@ async def create_variant(
             explanation=q["explanation"],
             latex_content=q.get("latex_content"),
             image_svg=q.get("image_svg"),
-            source_reference=q["source_reference"],
+            source_reference=q.get("source_reference", ""),
             similarity_score=result["validation"].get("similarity_score", 0.0),
             validation_result=result["validation"],
             created_by=user_id,

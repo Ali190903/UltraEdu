@@ -2,7 +2,9 @@
 const nextConfig = {
   output: 'standalone',
   experimental: {
-    proxyTimeout: 180_000,
+    // Variant generation (25 questions, 5 concurrent) can take 30-40 minutes.
+    // Default Next.js 16 rewrite proxy timeout is 30s — far too short.
+    proxyTimeout: 2_700_000,
   },
   async rewrites() {
     return [
